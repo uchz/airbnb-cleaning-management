@@ -1,7 +1,5 @@
 import axios from 'axios'
 
-import axios from 'axios'
-
 // Em dev (Vite), o backend roda em localhost:8000.
 // Em produção, frontend e backend são servidos pelo mesmo domínio (FastAPI),
 // então usamos a rota relativa /api — não precisa de configuração.
