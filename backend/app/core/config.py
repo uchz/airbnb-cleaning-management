@@ -11,13 +11,19 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # Supabase
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
+    # Supabase (legado - não utilizado no fluxo atual)
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
     SUPABASE_BUCKET: str = "videos"
     
     # Frontend (origem permitida no CORS)
     FRONTEND_URL: str = "http://localhost:5173"
+    
+    # Uploads (para Railway Volume, apontar para o caminho do volume)
+    UPLOAD_DIR: str = ""
+    
+    # Diretório do frontend buildado (produção - Railway)
+    FRONTEND_DIST_DIR: str = ""
     
     # Environment
     ENVIRONMENT: str = "development"

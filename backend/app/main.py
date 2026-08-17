@@ -20,7 +20,12 @@ origins = [
     "http://localhost:3000",
     "https://*.vercel.app",  # Frontend em produção
     "https://*.netlify.app",
+    "https://*.up.railway.app",  # Railway
 ]
+
+# Em produção, se FRONTEND_URL for a URL do Railway, adiciona automaticamente
+if settings.ENVIRONMENT == "production" and settings.FRONTEND_URL:
+    origins.append(settings.FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,

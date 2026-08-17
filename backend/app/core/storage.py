@@ -9,7 +9,12 @@ class StorageService:
 
     def __init__(self):
         # Diretório base para uploads (dentro do backend)
-        self.upload_dir = Path(__file__).parent.parent.parent / "uploads" / "videos"
+        # Se UPLOAD_DIR estiver configurado (ex: Railway Volume), usa ele
+        from app.core.config import settings
+        if settings.UPLOAD_DIR:
+            self.upload_dir = Path(settings.UPLOAD_DIR)
+        else:
+            self.upload_dir = Path(__file__).parent.parent.parent / "uploads" / "videos"
         self.upload_dir.mkdir(parents=True, exist_ok=True)
     
     def upload_video(self, file_content: bytes, file_name: str, folder: str = "") -> str:
