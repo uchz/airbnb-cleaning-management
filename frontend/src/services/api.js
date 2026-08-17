@@ -1,9 +1,12 @@
 import axios from 'axios'
 
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+import axios from 'axios'
 
+// Em dev (Vite), o backend roda em localhost:8000.
+// Em produção, frontend e backend são servidos pelo mesmo domínio (FastAPI),
+// então usamos a rota relativa /api — não precisa de configuração.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:8000/api' : '/api'),
+  baseURL: import.meta.env.DEV ? 'http://localhost:8000/api' : '/api',
 })
 
 api.interceptors.request.use((config) => {

@@ -1,0 +1,22 @@
+# Git
+.git/
+.gitignore
+
+# Python
+**/__pycache__/
+*.pyc
+**/venv/
+**/.venv/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Environment
+.env
+*.log
+
+# Uploads / dados locais
+**/uploads/
+*.db
+*.sqlite*

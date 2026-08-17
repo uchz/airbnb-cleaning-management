@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
+from pathlib import Path
 from app.api import api_router
 from app.core.config import settings
 from app.core.storage import storage_service
@@ -18,8 +20,6 @@ origins = [
     "http://localhost:5173",  # Vite dev server
     "http://127.0.0.1:5173",  # Vite dev server (IP)
     "http://localhost:3000",
-    "https://*.vercel.app",  # Frontend em produção
-    "https://*.netlify.app",
     "https://*.up.railway.app",  # Railway
 ]
 
@@ -39,11 +39,6 @@ app.add_middleware(
 app.include_router(api_router)
 
 
-@app.get("/")
-def root():
-    return {"message": "Airbnb Cleaning Management API", "status": "ok"}
-
-
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
@@ -56,3 +51,26 @@ def serve_video(path: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Vídeo não encontrado")
     return FileResponse(file_path, media_type="video/webm")
+
+
+# Servir frontend buildado (produção - Railway, mesmo domínio da API)
+_dist_dir = settings.FRONTEND_DIST_DIR
+if _dist_dir and Path(_dist_dir).exists():
+    dist = Path(_dist_dir)
+
+    # Assets estáticos (com hash)
+    if (dist / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    # Fallback SPA: qualquer outra rota não-API serve o index.html
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(full_path: str):
+        # Arquivo real que existe no dist (ex: favicon.svg)
+        if full_path:
+            requested = dist / full_path
+            if requested.is_file():
+                return FileResponse(requested)
+        index = dist / "index.html"
+        if index.exists():
+            return FileResponse(index)
+        return {"message": "Airbnb Cleaning Management API", "status": "ok"}
