@@ -125,3 +125,9 @@ export const getLowStockProducts = () => api.get('/products/low-stock')
 export const createProduct = (data) => api.post('/products/', data)
 export const updateProduct = (id, data) => api.put(`/products/${id}`, data)
 export const deleteProduct = (id) => api.delete(`/products/${id}`)
+
+// ============ Notifications ============
+export const getNotifications = (params = {}) => api.get('/notifications/', { params })
+export const getUnreadCount = () => api.get('/notifications/unread-count')
+export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`)
+export const markAllNotificationsRead = () => api.post('/notifications/read-all')

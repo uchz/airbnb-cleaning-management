@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getLowStockProducts } from '../../services'
 import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles } from 'lucide-react'
 import Button from '../ui/Button'
+import NotificationBell from './NotificationBell'
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
@@ -102,6 +103,7 @@ export default function Layout({ children }) {
               <p className="text-sm font-semibold text-white truncate">{user?.full_name}</p>
               <p className="text-xs text-gray-500 truncate">@{user?.username}</p>
             </div>
+            <NotificationBell />
             <button
               onClick={logout}
               title="Sair"
@@ -122,12 +124,15 @@ export default function Layout({ children }) {
             </div>
             <p className="font-bold">Limpeza Airbnb</p>
           </div>
-          <button
-            onClick={logout}
-            className="p-2 text-gray-400 hover:text-rose-400 rounded-lg"
-          >
-            <LogOut size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              onClick={logout}
+              className="p-2 text-gray-400 hover:text-rose-400 rounded-lg"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
         <div className="px-4 pb-3 flex items-center gap-2 text-xs text-gray-400">
           <span className="text-white font-semibold">{user?.full_name}</span>

@@ -18,6 +18,7 @@ from app.schemas.schedule import (
     ScheduleTaskResponse,
     ScheduleTaskDetailResponse,
 )
+from app.services.notifications import notify_task_created
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
@@ -146,6 +147,11 @@ def create_task(
     new_task = ScheduleTask(**task_data.model_dump())
 
     db.add(new_task)
+    db.flush()  # garante task.id antes de criar notificação
+
+    # Notificar funcionário sobre a nova tarefa
+    notify_task_created(db, new_task)
+
     db.commit()
     db.refresh(new_task)
 

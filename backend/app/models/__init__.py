@@ -6,6 +6,7 @@ from app.models.execution import TaskExecution
 from app.models.history import TaskHistory
 from app.models.checklist import ChecklistTemplate, ChecklistItem
 from app.models.product import Product
+from app.models.notification import Notification
 
 __all__ = [
     "User",
@@ -21,4 +22,5 @@ __all__ = [
     "ChecklistTemplate",
     "ChecklistItem",
     "Product",
+    "Notification",
 ]

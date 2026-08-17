@@ -16,6 +16,7 @@ from app.schemas.execution import (
     VideoUploadResponse,
 )
 from app.core.storage import storage_service
+from app.services.notifications import notify_task_completed
 import os
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
@@ -176,7 +177,10 @@ async def checkout(
     
     # Marcar tarefa como concluída
     task.status = TaskStatus.COMPLETED
-    
+
+    # Notificar admins sobre a conclusão
+    notify_task_completed(db, task, current_user)
+
     db.commit()
     db.refresh(execution)
     
