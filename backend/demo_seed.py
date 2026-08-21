@@ -9,7 +9,7 @@ from app.core.database import SessionLocal, engine, Base
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.models.apartment import Apartment
-from app.models.schedule import WeeklySchedule
+from app.models.schedule import Schedule, ScheduleType
 from app.models.task import ScheduleTask, TaskType
 from app import models  # noqa: F401
 
@@ -62,8 +62,8 @@ try:
         db.commit()
         print(f"{len(aptos_data)} apartamentos criados")
 
-    # Escala semanal: a partir do próximo sábado
-    if db.query(WeeklySchedule).count() == 0:
+    # Escala semanal (WEEKLY): a partir do próximo sábado
+    if db.query(Schedule).filter(Schedule.schedule_type == ScheduleType.WEEKLY).count() == 0:
         today = date.today()
         days_until_sat = (5 - today.weekday()) % 7  # sábado = 5 na iso (seg=0)
         if days_until_sat == 0:
@@ -71,7 +71,12 @@ try:
         week_start = today + timedelta(days=days_until_sat)
         week_end = week_start + timedelta(days=6)
 
-        schedule = WeeklySchedule(week_start=week_start, week_end=week_end, notes="Escala de demonstração")
+        schedule = Schedule(
+            schedule_type=ScheduleType.WEEKLY,
+            start_date=week_start,
+            end_date=week_end,
+            notes="Escala de demonstração (semanal)"
+        )
         db.add(schedule)
         db.commit()
         print(f"Escala criada: {week_start} a {week_end}")
