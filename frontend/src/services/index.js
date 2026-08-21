@@ -21,6 +21,7 @@ export const deleteApartment = (id) => api.delete(`/apartments/${id}`)
 // ============ Schedules ============
 export const getSchedules = () => api.get('/schedules/')
 export const getSchedule = (id) => api.get(`/schedules/${id}`)
+export const getScheduleWithTasks = (id) => api.get(`/schedules/${id}/with-tasks`)
 export const createSchedule = (data) => api.post('/schedules/', data)
 export const updateSchedule = (id, data) => api.put(`/schedules/${id}`, data)
 export const deleteSchedule = (id) => api.delete(`/schedules/${id}`)

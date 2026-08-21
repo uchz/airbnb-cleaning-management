@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getSchedules, getSchedule } from '../../services'
+import { getSchedules, getScheduleWithTasks } from '../../services'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
@@ -25,10 +25,10 @@ export default function MySchedule() {
 
         const schedules = await getSchedules()
         // Encontrar escala da semana atual (ou a mais próxima)
-        const current = schedules.data.find((sc) => sc.week_start === s) || schedules.data[0]
+        const current = schedules.data.find((sc) => sc.start_date === s) || schedules.data[0]
 
         if (current) {
-          const detail = await getSchedule(current.id)
+          const detail = await getScheduleWithTasks(current.id)
           setSchedule(detail.data)
         }
       } catch (err) {
@@ -56,7 +56,18 @@ export default function MySchedule() {
     )
   }
 
-  const weekDaysList = Array.from({ length: 7 }, (_, i) => addDays(new Date(schedule.week_start + 'T00:00:00'), i))
+  const weekDaysList =
+    schedule.start_date && schedule.end_date
+      ? (() => {
+          const start = new Date(schedule.start_date + 'T00:00:00')
+          const end = new Date(schedule.end_date + 'T00:00:00')
+          const days = []
+          for (let d = new Date(start); d <= end && days.length < 31; d = addDays(d, 1)) {
+            days.push(new Date(d))
+          }
+          return days
+        })()
+      : []
   const today = format(new Date(), 'yyyy-MM-dd')
 
   return (
@@ -66,15 +77,15 @@ export default function MySchedule() {
           Minha <span className="text-gradient">Escala</span>
         </h1>
         <p className="text-gray-500 mt-1">
-          Semana de {format(new Date(schedule.week_start + 'T00:00:00'), 'dd/MM', { locale: ptBR })} a{' '}
-          {format(new Date(schedule.week_end + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
+          Período de {format(new Date(schedule.start_date + 'T00:00:00'), 'dd/MM', { locale: ptBR })} a{' '}
+          {format(new Date(schedule.end_date + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {weekDaysList.map((day, idx) => {
           const dateKey = format(day, 'yyyy-MM-dd')
-          const dayTasks = schedule.tasks.filter((t) => t.scheduled_date === dateKey)
+          const dayTasks = (schedule.tasks || []).filter((t) => t.scheduled_date === dateKey)
           const isToday = dateKey === today
 
           return (

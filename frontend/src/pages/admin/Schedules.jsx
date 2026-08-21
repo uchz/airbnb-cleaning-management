@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback } from 'react'
 import {
   getSchedules,
-  getSchedule,
+  getScheduleWithTasks,
   createSchedule,
   deleteSchedule,
   getEmployees,
@@ -55,7 +55,7 @@ export default function Schedules() {
       const res = await getSchedules()
       setSchedules(res.data)
       if (!selected && res.data.length > 0) {
-        const detail = await getSchedule(res.data[0].id)
+        const detail = await getScheduleWithTasks(res.data[0].id)
         setSelected(detail.data)
       }
     } catch (err) {
@@ -72,7 +72,7 @@ export default function Schedules() {
   }, [])
 
   const selectSchedule = async (id) => {
-    const res = await getSchedule(id)
+    const res = await getScheduleWithTasks(id)
     setSelected(res.data)
   }
 
@@ -91,13 +91,14 @@ export default function Schedules() {
 
     try {
       const res = await createSchedule({
-        week_start: format(startDate, 'yyyy-MM-dd'),
-        week_end: format(weekEnd, 'yyyy-MM-dd'),
+        schedule_type: 'weekly',
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(weekEnd, 'yyyy-MM-dd'),
       })
       setShowNewWeek(false)
       await load()
       if (res.data.id) {
-        const detail = await getSchedule(res.data.id)
+        const detail = await getScheduleWithTasks(res.data.id)
         setSelected(detail.data)
       }
     } catch (err) {
@@ -164,9 +165,19 @@ export default function Schedules() {
     return <div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full mx-auto mt-20"></div>
   }
 
-  // Construir dias da semana selecionada
-  const weekDaysList = selected
-    ? Array.from({ length: 7 }, (_, i) => addDays(new Date(selected.week_start + 'T00:00:00'), i))
+  // Construir lista de dias da escala selecionada
+  // - weekly: 7 dias a partir do sábado
+  // - date_range: todos os dias do período (limitado a 31)
+  const weekDaysList = selected?.start_date && selected?.end_date
+    ? (() => {
+        const start = new Date(selected.start_date + 'T00:00:00')
+        const end = new Date(selected.end_date + 'T00:00:00')
+        const days = []
+        for (let d = new Date(start); d <= end && days.length < 31; d = addDays(d, 1)) {
+          days.push(new Date(d))
+        }
+        return days
+      })()
     : []
 
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -207,7 +218,7 @@ export default function Schedules() {
                     }`}
                   >
                     <span className="font-medium">
-                      {formatDate(s.week_start)} - {formatDate(s.week_end)}
+                      {formatDate(s.start_date)} - {formatDate(s.end_date)}
                     </span>
                     <button
                       onClick={(e) => {
@@ -241,7 +252,8 @@ export default function Schedules() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="font-bold text-gray-900">
-                    Semana de {formatDate(selected.week_start)} a {formatDate(selected.week_end)}
+                    {selected.schedule_type === 'weekly' ? 'Semana' : 'Período'} de{' '}
+                    {formatDate(selected.start_date)} a {formatDate(selected.end_date)}
                   </h2>
                   <Badge color={selected.status === 'active' ? 'green' : 'gray'}>
                     {selected.status === 'active' ? 'Ativa' : selected.status}
@@ -274,7 +286,7 @@ export default function Schedules() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
                 {weekDaysList.map((day, idx) => {
                   const dateKey = format(day, 'yyyy-MM-dd')
-                  const dayTasks = selected.tasks.filter((t) => t.scheduled_date === dateKey)
+                  const dayTasks = (selected.tasks || []).filter((t) => t.scheduled_date === dateKey)
                   return (
                     <Card key={idx} className={`p-3 ${dateKey === today ? 'ring-2 ring-brand-500' : ''}`}>
                       <div className="flex justify-between items-center mb-2">
