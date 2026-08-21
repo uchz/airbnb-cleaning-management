@@ -7,6 +7,8 @@ import {
   getEmployees,
   getApartments,
   createTask,
+  deleteTask,
+  getTasks,
   reschedule,
 } from '../../services'
 import Card from '../../components/ui/Card'
@@ -16,8 +18,8 @@ import Select from '../../components/ui/Select'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getWeekStart, formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
-import { CalendarPlus, Plus, RefreshCw, Trash2, Clock } from 'lucide-react'
+import { formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
+import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap } from 'lucide-react'
 
 const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
@@ -28,11 +30,11 @@ export default function Schedules() {
   const [apartments, setApartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNewWeek, setShowNewWeek] = useState(false)
-  const [weekOffset, setWeekOffset] = useState(0)
-  const [newScheduleType, setNewScheduleType] = useState('weekly')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showAdhocModal, setShowAdhocModal] = useState(false)
+  const [adhocTasks, setAdhocTasks] = useState([])
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [rescheduleTask, setRescheduleTask] = useState(null)
   const [error, setError] = useState('')
@@ -61,6 +63,8 @@ export default function Schedules() {
         const detail = await getScheduleWithTasks(res.data[0].id)
         setSelected(detail.data)
       }
+      const t = await getTasks()
+      setAdhocTasks(t.data.filter((x) => !x.schedule_id))
     } catch (err) {
       console.error(err)
     } finally {
@@ -82,45 +86,23 @@ export default function Schedules() {
   const handleCreateSchedule = async (e) => {
     e.preventDefault()
     try {
-      let payload
-      if (newScheduleType === 'weekly') {
-        const start = getWeekStart(new Date())
-        const weekStart = new Date(start)
-        weekStart.setDate(weekStart.getDate() + weekOffset * 7)
-        const weekEnd = addDays(weekStart, 6)
-
-        const startDate = new Date(weekStart)
-        if (startDate.getDay() !== 6) {
-          const diff = (startDate.getDay() + 1) % 7
-          startDate.setDate(startDate.getDate() - diff)
-        }
-
-        payload = {
-          schedule_type: 'weekly',
-          start_date: format(startDate, 'yyyy-MM-dd'),
-          end_date: format(weekEnd, 'yyyy-MM-dd'),
-        }
-      } else {
-        if (!customStart || !customEnd) {
-          setError('Informe a data inicial e final do período.')
-          return
-        }
-        if (customEnd < customStart) {
-          setError('A data final deve ser depois da inicial.')
-          return
-        }
-        payload = {
-          schedule_type: 'date_range',
-          start_date: customStart,
-          end_date: customEnd,
-        }
+      if (!customStart || !customEnd) {
+        setError('Informe a data inicial e final do período.')
+        return
+      }
+      if (customEnd < customStart) {
+        setError('A data final deve ser depois da inicial.')
+        return
       }
 
-      const res = await createSchedule(payload)
+      const res = await createSchedule({
+        schedule_type: 'date_range',
+        start_date: customStart,
+        end_date: customEnd,
+      })
       setShowNewWeek(false)
       setCustomStart('')
       setCustomEnd('')
-      setNewScheduleType('weekly')
       await load()
       if (res.data.id) {
         const detail = await getScheduleWithTasks(res.data.id)
@@ -155,6 +137,34 @@ export default function Schedules() {
       await selectSchedule(selected.id)
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao criar tarefa')
+    }
+  }
+
+  const openAdhocModal = () => {
+    setTaskForm({ ...taskForm, scheduled_date: format(new Date(), 'yyyy-MM-dd'), employee_id: employees[0]?.id || '' })
+    setError('')
+    setShowAdhocModal(true)
+  }
+
+  const handleCreateAdhoc = async (e) => {
+    e.preventDefault()
+    try {
+      const { ...payload } = taskForm
+      await createTask(payload) // sem schedule_id = diária avulsa
+      setShowAdhocModal(false)
+      await load()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erro ao criar diária')
+    }
+  }
+
+  const handleDeleteAdhoc = async (id) => {
+    if (!confirm('Excluir esta diária avulsa?')) return
+    try {
+      await deleteTask(id)
+      await load()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao excluir diária')
     }
   }
 
@@ -214,13 +224,20 @@ export default function Schedules() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
             <span className="text-gradient">Escalas</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Semanal (sáb–sex) ou por período customizado</p>
+          <p className="text-sm text-gray-500 mt-1">Crie escalas por período — de 1 dia a várias semanas</p>
         </div>
-        <Button onClick={() => setShowNewWeek(true)}>
-          <span className="flex items-center gap-2">
-            <CalendarPlus size={16} /> Nova Escala
-          </span>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openAdhocModal}>
+            <span className="flex items-center gap-2">
+              <Zap size={16} /> Nova Diária
+            </span>
+          </Button>
+          <Button onClick={() => setShowNewWeek(true)}>
+            <span className="flex items-center gap-2">
+              <CalendarPlus size={16} /> Nova Escala
+            </span>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -277,28 +294,13 @@ export default function Schedules() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="font-bold text-gray-900">
-                    {selected.schedule_type === 'weekly' ? 'Semana' : 'Período'} de{' '}
-                    {formatDate(selected.start_date)} a {formatDate(selected.end_date)}
+                    Período de {formatDate(selected.start_date)} a {formatDate(selected.end_date)}
                   </h2>
                   <Badge color={selected.status === 'active' ? 'green' : 'gray'}>
                     {selected.status === 'active' ? 'Ativa' : selected.status}
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <select
-                    value={weekOffset}
-                    onChange={(e) => setWeekOffset(Number(e.target.value))}
-                    className="px-2 py-1.5 border rounded-lg text-sm"
-                  >
-                    {[-2, -1, 0, 1, 2].map((o) => {
-                      const d = addDays(getWeekStart(new Date()), o * 7)
-                      return (
-                        <option key={o} value={o}>
-                          {formatDate(format(d, 'yyyy-MM-dd'))}
-                        </option>
-                      )
-                    })}
-                  </select>
                   <Button variant="outline" onClick={() => openTaskModal()}>
                     <span className="flex items-center gap-2">
                       <Plus size={16} /> Adicionar Tarefa
@@ -374,78 +376,69 @@ export default function Schedules() {
         </div>
       </div>
 
+      {/* Diárias avulsas (sem escala) */}
+      {adhocTasks.length > 0 && (
+        <Card className="mt-6 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+            <Zap size={16} className="text-amber-500" />
+            <p className="font-semibold text-gray-900 text-sm">Diárias avulsas</p>
+            <span className="text-xs text-gray-400">fora de escala (free-lance)</span>
+          </div>
+          <ul className="divide-y divide-gray-100">
+            {adhocTasks.map((t) => {
+              const emp = employees.find((e) => e.id === t.employee_id)
+              return (
+                <li key={t.id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-50">
+                  <button onClick={() => openReschedule(t)} className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {t.apartment_name || `Apto #${t.apartment_id}`}
+                      <span className="ml-2 text-gray-400 font-normal">{formatDate(t.scheduled_date)} · {t.scheduled_time?.substring(0, 5)}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {emp?.full_name?.split(' ')[0] || '—'} ·{' '}
+                      <Badge color={taskStatusColors[t.status]}>{taskStatusLabels[t.status]}</Badge>
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAdhoc(t.id)}
+                    className="text-gray-400 hover:text-red-500 p-1 shrink-0"
+                    title="Excluir"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </Card>
+      )}
+
       {/* Modal Nova Escala */}
       {showNewWeek && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Nova Escala</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">Nova Escala por Período</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Escolha as datas de início e fim — pode ser 1 dia, alguns dias ou semanas.
+              </p>
               <form onSubmit={handleCreateSchedule}>
-                {/* Tipo de escala */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => { setNewScheduleType('weekly'); setError('') }}
-                    className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                      newScheduleType === 'weekly'
-                        ? 'bg-brand-50 border-brand-400 text-brand-700 ring-1 ring-brand-300'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
-                  >
-                    Semanal (Sáb–Sex)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setNewScheduleType('date_range'); setError('') }}
-                    className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                      newScheduleType === 'date_range'
-                        ? 'bg-brand-50 border-brand-400 text-brand-700 ring-1 ring-brand-300'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
-                  >
-                    Período custom
-                  </button>
+                <div className="space-y-3">
+                  <Input
+                    label="Data inicial"
+                    type="date"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Data final"
+                    type="date"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    required
+                  />
                 </div>
-
-                {newScheduleType === 'weekly' ? (
-                  <>
-                    <p className="text-sm text-gray-500 mb-3">
-                      A escala será criada para a semana de <strong>sábado a sexta-feira</strong>.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset - 1)}>
-                        ←
-                      </Button>
-                      <div className="flex-1 text-center">
-                        {format(addDays(getWeekStart(new Date()), weekOffset * 7), 'dd/MM')} a{' '}
-                        {format(addDays(getWeekStart(new Date()), weekOffset * 7 + 6), 'dd/MM')}
-                      </div>
-                      <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset + 1)}>
-                        →
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-3">
-                    <Input
-                      label="Data inicial"
-                      type="date"
-                      value={customStart}
-                      onChange={(e) => setCustomStart(e.target.value)}
-                      required
-                    />
-                    <Input
-                      label="Data final"
-                      type="date"
-                      value={customEnd}
-                      onChange={(e) => setCustomEnd(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-gray-400">
-                      Pode ser 1 dia, 2 dias, uma quinzena — o período que quiser.
-                    </p>
-                  </div>
-                )}
                 {error && (
                   <div className="bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-xl p-3 my-4">
                     {error}
@@ -533,6 +526,89 @@ export default function Schedules() {
                     Cancelar
                   </Button>
                   <Button type="submit">Criar Tarefa</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nova Diária Avulsa */}
+      {showAdhocModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Zap size={18} className="text-amber-500" />
+                Nova Diária Avulsa
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Tarefa fora de qualquer escala — ideal para free-lancers ou demandas pontuais.
+              </p>
+              <form onSubmit={handleCreateAdhoc}>
+                <Select
+                  label="Funcionário"
+                  value={taskForm.employee_id}
+                  onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })}
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  label="Apartamento"
+                  value={taskForm.apartment_id}
+                  onChange={(e) => setTaskForm({ ...taskForm, apartment_id: e.target.value })}
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  {apartments.map((ap) => (
+                    <option key={ap.id} value={ap.id}>
+                      {ap.name} - {ap.address}
+                    </option>
+                  ))}
+                </Select>
+                <Input
+                  label="Data"
+                  type="date"
+                  value={taskForm.scheduled_date}
+                  onChange={(e) => setTaskForm({ ...taskForm, scheduled_date: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Horário"
+                  type="time"
+                  value={taskForm.scheduled_time}
+                  onChange={(e) => setTaskForm({ ...taskForm, scheduled_time: e.target.value })}
+                  required
+                />
+                <Select
+                  label="Tipo de Diária"
+                  value={taskForm.task_type}
+                  onChange={(e) => setTaskForm({ ...taskForm, task_type: e.target.value })}
+                >
+                  <option value="full_day">Diária Inteira</option>
+                  <option value="half_day">Meia Diária</option>
+                </Select>
+                <Input
+                  label="Observações"
+                  value={taskForm.notes}
+                  onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
+                />
+                {error && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-xl p-3 mb-4">
+                    {error}
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button variant="outline" onClick={() => setShowAdhocModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Criar Diária</Button>
                 </div>
               </form>
             </div>

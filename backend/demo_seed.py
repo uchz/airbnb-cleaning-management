@@ -62,24 +62,21 @@ try:
         db.commit()
         print(f"{len(aptos_data)} apartamentos criados")
 
-    # Escala semanal (WEEKLY): a partir do próximo sábado
-    if db.query(Schedule).filter(Schedule.schedule_type == ScheduleType.WEEKLY).count() == 0:
+    # Escala por período (7 dias a partir de hoje)
+    if db.query(Schedule).count() == 0:
         today = date.today()
-        days_until_sat = (5 - today.weekday()) % 7  # sábado = 5 na iso (seg=0)
-        if days_until_sat == 0:
-            days_until_sat = 7
-        week_start = today + timedelta(days=days_until_sat)
-        week_end = week_start + timedelta(days=6)
+        period_start = today
+        period_end = today + timedelta(days=6)
 
         schedule = Schedule(
-            schedule_type=ScheduleType.WEEKLY,
-            start_date=week_start,
-            end_date=week_end,
-            notes="Escala de demonstração (semanal)"
+            schedule_type=ScheduleType.DATE_RANGE,
+            start_date=period_start,
+            end_date=period_end,
+            notes="Escala de demonstração (período)"
         )
         db.add(schedule)
         db.commit()
-        print(f"Escala criada: {week_start} a {week_end}")
+        print(f"Escala criada: {period_start} a {period_end}")
 
         apartamentos = db.query(Apartment).all()
         tasks_data = [
@@ -91,7 +88,7 @@ try:
             (5, "13:00", TaskType.HALF_DAY),
         ]
         for idx, (apt_idx, time_str, ttype) in enumerate(tasks_data):
-            task_date = week_start + timedelta(days=idx)
+            task_date = period_start + timedelta(days=idx)
             h, m = map(int, time_str.split(":"))
             db.add(ScheduleTask(
                 schedule_id=schedule.id,
