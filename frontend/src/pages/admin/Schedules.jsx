@@ -4,6 +4,7 @@ import {
   getScheduleWithTasks,
   createSchedule,
   deleteSchedule,
+  duplicateSchedule,
   getEmployees,
   getApartments,
   createTask,
@@ -19,7 +20,7 @@ import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
-import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap } from 'lucide-react'
+import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap, CopyPlus } from 'lucide-react'
 
 const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
@@ -121,6 +122,19 @@ export default function Schedules() {
       await load()
     } catch (err) {
       alert(err.response?.data?.detail || 'Erro ao excluir escala')
+    }
+  }
+
+  const handleDuplicate = async () => {
+    if (!confirm('Duplicar esta escala para o próximo período (mesmas tarefas, datas deslocadas)?')) return
+    setError('')
+    try {
+      const res = await duplicateSchedule(selected.id)
+      await load()
+      const detail = await getScheduleWithTasks(res.data.id)
+      setSelected(detail.data)
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao duplicar escala')
     }
   }
 
@@ -301,6 +315,11 @@ export default function Schedules() {
                   </Badge>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleDuplicate}>
+                    <span className="flex items-center gap-2">
+                      <CopyPlus size={16} /> Duplicar
+                    </span>
+                  </Button>
                   <Button variant="outline" onClick={() => openTaskModal()}>
                     <span className="flex items-center gap-2">
                       <Plus size={16} /> Adicionar Tarefa

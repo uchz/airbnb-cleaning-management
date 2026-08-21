@@ -1,13 +1,14 @@
 ﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getSchedules, getScheduleWithTasks, getTasks } from '../../services'
+import { getSchedules, getScheduleWithTasks, getTasks, getMyFeedUrl } from '../../services'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/ui/Card'
+import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatTime, formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
-import { MapPin, Clock, Play, CheckCircle2, CalendarDays, Zap } from 'lucide-react'
+import { MapPin, Clock, Play, CheckCircle2, CalendarDays, Zap, Copy, Check } from 'lucide-react'
 
 const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
@@ -16,6 +17,8 @@ export default function MySchedule() {
   const navigate = useNavigate()
   const [schedule, setSchedule] = useState(null)
   const [adhocTasks, setAdhocTasks] = useState([])
+  const [feedUrl, setFeedUrl] = useState('')
+  const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -38,6 +41,14 @@ export default function MySchedule() {
         // Diárias avulsas (sem escala) atribuídas a mim
         const all = await getTasks()
         setAdhocTasks(all.data.filter((t) => !t.schedule_id))
+
+        // URL do feed de calendário
+        try {
+          const feed = await getMyFeedUrl()
+          setFeedUrl(window.location.origin + feed.data.url)
+        } catch {
+          setFeedUrl('')
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -46,6 +57,17 @@ export default function MySchedule() {
     }
     load()
   }, [])
+
+  const copyFeed = async () => {
+    if (!feedUrl) return
+    try {
+      await navigator.clipboard.writeText(feedUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard indisponível
+    }
+  }
 
   if (loading) {
     return <div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full mx-auto mt-20"></div>
@@ -232,6 +254,28 @@ export default function MySchedule() {
             ))}
           </div>
         </div>
+      )}
+      {/* Sincronizar com Google Calendar */}
+      {feedUrl && (
+        <Card className="mt-8 p-5 bg-gradient-to-r from-slate-50 to-brand-50/50 border">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-white shadow flex items-center justify-center shrink-0">
+              <CalendarDays size={22} className="text-brand-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-gray-900 text-sm">Sincronizar com Google Calendar</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                No Google Calendar: <strong>Outros calendários → De URL</strong> e cole o link. Suas limpezas aparecem automaticamente no seu calendário.
+              </p>
+            </div>
+            <Button variant="outline" onClick={copyFeed} className="shrink-0">
+              <span className="flex items-center gap-2">
+                {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+                {copied ? 'Copiado!' : 'Copiar link'}
+              </span>
+            </Button>
+          </div>
+        </Card>
       )}
     </div>
   )

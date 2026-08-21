@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from pydantic import BaseModel
 from app.core.database import get_db
+from app.api.deps import get_current_user
 from app.core.security import verify_password, create_access_token, get_password_hash
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import UserLogin, Token, UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -66,3 +73,26 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Trocar a própria senha (usuário logado)"""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Senha atual incorreta"
+        )
+    if len(payload.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve ter pelo menos 6 caracteres"
+        )
+
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Senha alterada com sucesso"}

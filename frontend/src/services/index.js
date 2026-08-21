@@ -3,6 +3,8 @@ import api from './api'
 // ============ Auth ============
 export const login = (username, password) => api.post('/auth/login', { username, password })
 export const getMe = () => api.get('/users/me')
+export const changePassword = (current_password, new_password) =>
+  api.post('/auth/change-password', { current_password, new_password })
 
 // ============ Users ============
 export const getUsers = () => api.get('/users/')
@@ -25,6 +27,10 @@ export const getScheduleWithTasks = (id) => api.get(`/schedules/${id}/with-tasks
 export const createSchedule = (data) => api.post('/schedules/', data)
 export const updateSchedule = (id, data) => api.put(`/schedules/${id}`, data)
 export const deleteSchedule = (id) => api.delete(`/schedules/${id}`)
+export const duplicateSchedule = (id) => api.post(`/schedules/${id}/duplicate`)
+
+// ============ Calendar feed ============
+export const getMyFeedUrl = () => api.get('/calendar/my-feed')
 
 // ============ Tasks ============
 export const getTasks = (params = {}) => api.get('/schedules/tasks/all', { params })

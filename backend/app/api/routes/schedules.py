@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-from datetime import date
+from datetime import date, timedelta
 from app.core.database import get_db
 from app.api.deps import get_current_active_admin, get_current_user
 from app.models.user import User, UserRole
@@ -329,6 +329,72 @@ def create_schedule(
     db.commit()
     db.refresh(new_schedule)
 
+    return new_schedule
+
+
+@router.post("/{schedule_id}/duplicate", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
+def duplicate_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Duplicar escala para o próximo período (mesma duração, mesmas tarefas deslocadas)"""
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    if not schedule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Escala não encontrada"
+        )
+    if not schedule.start_date or not schedule.end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Escala sem período definido não pode ser duplicada"
+        )
+
+    tasks = db.query(ScheduleTask).filter(ScheduleTask.schedule_id == schedule_id).all()
+
+    length = (schedule.end_date - schedule.start_date).days + 1
+    new_start = schedule.end_date + timedelta(days=1)
+    new_end = new_start + timedelta(days=length - 1)
+    delta = new_start - schedule.start_date
+
+    # Verificar se já não existe escala nesse novo período (qualquer tipo com datas iguais)
+    clash = db.query(Schedule).filter(
+        Schedule.start_date == new_start,
+        Schedule.end_date == new_end,
+    ).first()
+    if clash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Já existe escala de {new_start.strftime('%d/%m')} a {new_end.strftime('%d/%m')}"
+        )
+
+    new_schedule = Schedule(
+        schedule_type=schedule.schedule_type,
+        start_date=new_start,
+        end_date=new_end,
+        notes=schedule.notes,
+    )
+    db.add(new_schedule)
+    db.flush()
+
+    for t in tasks:
+        db.add(ScheduleTask(
+            schedule_id=new_schedule.id,
+            employee_id=t.employee_id,
+            apartment_id=t.apartment_id,
+            scheduled_date=t.scheduled_date + delta,
+            scheduled_time=t.scheduled_time,
+            task_type=t.task_type,
+            notes=t.notes,
+        ))
+
+    db.flush()
+    for t in db.query(ScheduleTask).filter(ScheduleTask.schedule_id == new_schedule.id).all():
+        notify_task_created(db, t)
+
+    db.commit()
+    db.refresh(new_schedule)
     return new_schedule
 
 

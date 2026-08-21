@@ -1,9 +1,10 @@
 ﻿import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useEffect, useState } from 'react'
-import { getLowStockProducts } from '../../services'
-import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles } from 'lucide-react'
+import { getLowStockProducts, changePassword } from '../../services'
+import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound } from 'lucide-react'
 import Button from '../ui/Button'
+import Input from '../ui/Input'
 import NotificationBell from './NotificationBell'
 
 export default function Layout({ children }) {
@@ -11,6 +12,36 @@ export default function Layout({ children }) {
   const location = useLocation()
   const isAdmin = user?.role === 'admin'
   const [lowStockCount, setLowStockCount] = useState(0)
+  const [showPwdModal, setShowPwdModal] = useState(false)
+  const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
+  const [pwdError, setPwdError] = useState('')
+  const [pwdSuccess, setPwdSuccess] = useState('')
+
+  const openPwdModal = () => {
+    setPwdForm({ current: '', next: '', confirm: '' })
+    setPwdError('')
+    setPwdSuccess('')
+    setShowPwdModal(true)
+  }
+
+  const handlePwdSubmit = async (e) => {
+    e.preventDefault()
+    setPwdError('')
+    if (pwdForm.next !== pwdForm.confirm) {
+      setPwdError('A confirmação não confere com a nova senha.')
+      return
+    }
+    if (pwdForm.next.length < 6) {
+      setPwdError('A nova senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+    try {
+      await changePassword(pwdForm.current, pwdForm.next)
+      setShowPwdModal(false)
+    } catch (err) {
+      setPwdError(err.response?.data?.detail || 'Erro ao trocar senha')
+    }
+  }
 
   useEffect(() => {
     if (!isAdmin) return
@@ -105,6 +136,13 @@ export default function Layout({ children }) {
             </div>
             <NotificationBell />
             <button
+              onClick={openPwdModal}
+              title="Trocar senha"
+              className="p-2 text-gray-400 hover:text-brand-300 hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <KeyRound size={16} />
+            </button>
+            <button
               onClick={logout}
               title="Sair"
               className="p-2 text-gray-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors"
@@ -126,6 +164,13 @@ export default function Layout({ children }) {
           </div>
           <div className="flex items-center gap-1">
             <NotificationBell />
+            <button
+              onClick={openPwdModal}
+              title="Trocar senha"
+              className="p-2 text-gray-400 hover:text-brand-300 rounded-lg"
+            >
+              <KeyRound size={18} />
+            </button>
             <button
               onClick={logout}
               className="p-2 text-gray-400 hover:text-rose-400 rounded-lg"
@@ -169,6 +214,54 @@ export default function Layout({ children }) {
           })}
         </div>
       </nav>
+
+      {/* Modal Trocar Senha */}
+      {showPwdModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <KeyRound size={18} className="text-brand-600" /> Trocar Senha
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">Conta de <strong>{user?.username}</strong></p>
+              <form onSubmit={handlePwdSubmit}>
+                <Input
+                  label="Senha atual"
+                  type="password"
+                  value={pwdForm.current}
+                  onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Nova senha (mín. 6 caracteres)"
+                  type="password"
+                  value={pwdForm.next}
+                  onChange={(e) => setPwdForm({ ...pwdForm, next: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Confirmar nova senha"
+                  type="password"
+                  value={pwdForm.confirm}
+                  onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
+                  required
+                />
+                {pwdError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-xl p-3 mb-4">
+                    {pwdError}
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button variant="outline" onClick={() => setShowPwdModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Salvar Nova Senha</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ from app.api.routes import (
     checklist_router,
     products_router,
     notifications_router,
+    calendar_router,
 )
 
 api_router.include_router(auth_router, prefix="/api")
@@ -23,3 +24,4 @@ api_router.include_router(reports_router, prefix="/api")
 api_router.include_router(checklist_router, prefix="/api")
 api_router.include_router(products_router, prefix="/api")
 api_router.include_router(notifications_router, prefix="/api")
+api_router.include_router(calendar_router, prefix="/api")
