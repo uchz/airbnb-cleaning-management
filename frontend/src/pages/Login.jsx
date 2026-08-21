@@ -40,11 +40,8 @@ export default function Login() {
         <div className="bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl p-8 sm:p-10 shadow-2xl">
           {/* Marca */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-xl shadow-brand-600/40 mb-4">
-              A
-            </div>
-            <h1 className="text-2xl font-extrabold text-white">Limpeza Airbnb</h1>
-            <p className="text-sm text-gray-400 mt-1.5 flex items-center gap-1.5">
+            <img src="/logo-light.svg" alt="Verus Sweeply" className="h-10 w-auto" />
+            <p className="text-sm text-gray-400 mt-3 flex items-center gap-1.5">
               <Sparkles size={14} className="text-brand-400" />
               Gestão inteligente de limpeza
             </p>
