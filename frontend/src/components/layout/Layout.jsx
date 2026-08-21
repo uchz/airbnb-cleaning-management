@@ -81,8 +81,8 @@ export default function Layout({ children }) {
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-slate-950 text-gray-300">
         {/* Logo */}
-        <div className="px-6 py-6">
-          <img src="/logo-light.svg" alt="Verus Sweeply" className="h-9 w-auto max-w-[180px]" />
+        <div className="px-6 py-5">
+          <img src="/logo-light.svg" alt="Verus Sweeply" className="h-10 w-auto max-w-[200px]" />
         </div>
 
         {/* Navegação */}
@@ -150,7 +150,7 @@ export default function Layout({ children }) {
       {/* Topbar mobile */}
       <header className="lg:hidden bg-slate-950 text-white sticky top-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
-          <img src="/logo-light.svg" alt="Verus Sweeply" className="h-7 w-auto" />
+          <img src="/logo-light.svg" alt="Verus Sweeply" className="h-8 w-auto" />
           <div className="flex items-center gap-1">
             <NotificationBell />
             <button
