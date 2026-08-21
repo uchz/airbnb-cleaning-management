@@ -27,7 +27,7 @@ def upgrade() -> None:
         END $$;
     """)
     
-    # 2. Criar tabela schedules com SQL puro (evita SQLAlchemy tentar criar enums)
+    # 2. Criar tabela schedules com SQL puro
     op.execute("""
         CREATE TABLE schedules (
             id SERIAL PRIMARY KEY,
@@ -52,15 +52,17 @@ def upgrade() -> None:
         FROM weekly_schedules
     """)
     
-    # 3. Remover tabela antiga
+    # 3. Remover foreign key de schedule_tasks ANTES de dropar weekly_schedules
+    op.execute("ALTER TABLE schedule_tasks DROP CONSTRAINT IF EXISTS schedule_tasks_schedule_id_fkey")
+    
+    # 4. Remover tabela antiga
     op.execute("DROP INDEX IF EXISTS ix_weekly_schedules_id")
     op.execute("DROP INDEX IF EXISTS ix_weekly_schedules_week_start")
     op.execute("DROP TABLE weekly_schedules")
     
-    # 4. Alterar schedule_tasks
+    # 5. Alterar schedule_tasks
     op.execute("ALTER TABLE schedule_tasks ALTER COLUMN schedule_id DROP NOT NULL")
     op.execute("CREATE INDEX IF NOT EXISTS ix_schedule_tasks_schedule_id ON schedule_tasks (schedule_id)")
-    op.execute("ALTER TABLE schedule_tasks DROP CONSTRAINT IF EXISTS schedule_tasks_schedule_id_fkey")
     op.execute("ALTER TABLE schedule_tasks ADD CONSTRAINT schedule_tasks_schedule_id_fkey FOREIGN KEY (schedule_id) REFERENCES schedules (id)")
 
 
