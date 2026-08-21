@@ -40,7 +40,7 @@ export default function Login() {
         <div className="bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl p-8 sm:p-10 shadow-2xl">
           {/* Marca */}
           <div className="flex flex-col items-center mb-8">
-            <img src="/logo-light.svg" alt="Verus Sweeply" className="h-10 w-auto" />
+            <img src="/logo-light.svg" alt="Verus Sweeply" className="h-14 sm:h-16 w-auto max-w-full" />
             <p className="text-sm text-gray-400 mt-3 flex items-center gap-1.5">
               <Sparkles size={14} className="text-brand-400" />
               Gestão inteligente de limpeza
