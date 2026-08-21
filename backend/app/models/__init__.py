@@ -1,6 +1,6 @@
 from app.models.user import User, UserRole
 from app.models.apartment import Apartment
-from app.models.schedule import WeeklySchedule, ScheduleStatus
+from app.models.schedule import Schedule, ScheduleType, ScheduleStatus
 from app.models.task import ScheduleTask, TaskType, TaskStatus
 from app.models.execution import TaskExecution
 from app.models.history import TaskHistory
@@ -12,7 +12,8 @@ __all__ = [
     "User",
     "UserRole",
     "Apartment",
-    "WeeklySchedule",
+    "Schedule",
+    "ScheduleType",
     "ScheduleStatus",
     "ScheduleTask",
     "TaskType",

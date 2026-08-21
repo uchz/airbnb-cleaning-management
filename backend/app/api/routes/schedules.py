@@ -5,14 +5,14 @@ from datetime import date
 from app.core.database import get_db
 from app.api.deps import get_current_active_admin, get_current_user
 from app.models.user import User, UserRole
-from app.models.schedule import WeeklySchedule, ScheduleStatus
+from app.models.schedule import Schedule, ScheduleStatus, ScheduleType
 from app.models.task import ScheduleTask, TaskStatus, TaskType
 from app.models.apartment import Apartment
 from app.schemas.schedule import (
-    WeeklyScheduleCreate,
-    WeeklyScheduleUpdate,
-    WeeklyScheduleResponse,
-    WeeklyScheduleWithTasks,
+    ScheduleCreate,
+    ScheduleUpdate,
+    ScheduleResponse,
+    ScheduleWithTasks,
     ScheduleTaskCreate,
     ScheduleTaskUpdate,
     ScheduleTaskResponse,
@@ -23,7 +23,7 @@ from app.services.notifications import notify_task_created
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
 
-# ============= Task Routes (definidas antes das rotas de schedule) =============
+# ============= Task Routes =============
 
 @router.get("/tasks/all", response_model=List[ScheduleTaskDetailResponse])
 def get_all_tasks(
@@ -106,27 +106,41 @@ def get_task_by_id(
     return task_detail
 
 
+def _validate_task_dates(db: Session, task_data, schedule_id: Optional[int]):
+    """Validar se a data da tarefa está dentro do período da escala (se houver)"""
+    if schedule_id:
+        schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+        if not schedule:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Escala não encontrada"
+            )
+        
+        if schedule.schedule_type == "weekly":
+            if not (schedule.start_date <= task_data.scheduled_date <= schedule.end_date):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A data da tarefa está fora do período da escala semanal"
+                )
+        elif schedule.schedule_type == "date_range":
+            if not (schedule.start_date <= task_data.scheduled_date <= schedule.end_date):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A data da tarefa está fora do período da escala"
+                )
+        # AD_HOC não tem validação de período
+
+
 @router.post("/tasks", response_model=ScheduleTaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
     task_data: ScheduleTaskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Criar tarefa em uma escala (apenas Admin)"""
-    # Verificar se escala existe
-    schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == task_data.schedule_id).first()
-    if not schedule:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Escala não encontrada"
-        )
-
-    # Verificar se a data da tarefa está dentro da semana da escala
-    if not (schedule.week_start <= task_data.scheduled_date <= schedule.week_end):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A data da tarefa está fora do período da escala"
-        )
+    """Criar tarefa (pode ser avulsa ou vinculada a uma escala)"""
+    # Validar escala se fornecida
+    if task_data.schedule_id:
+        _validate_task_dates(db, task_data, task_data.schedule_id)
 
     # Verificar se funcionário existe
     employee = db.query(User).filter(User.id == task_data.employee_id).first()
@@ -175,14 +189,13 @@ def update_task(
 
     update_data = task_data.model_dump(exclude_unset=True)
 
-    # Se for alterar a data, verificar se continua dentro da semana
-    if "scheduled_date" in update_data and update_data["scheduled_date"]:
-        schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == task.schedule_id).first()
-        if not (schedule.week_start <= update_data["scheduled_date"] <= schedule.week_end):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A data da tarefa está fora do período da escala"
-            )
+    # Se for alterar a data ou schedule_id, validar
+    new_schedule_id = update_data.get("schedule_id", task.schedule_id)
+    new_date = update_data.get("scheduled_date", task.scheduled_date)
+    
+    if "schedule_id" in update_data or "scheduled_date" in update_data:
+        if new_schedule_id is not None:
+            _validate_task_dates(db, task_data, new_schedule_id)
 
     for field, value in update_data.items():
         setattr(task, field, value)
@@ -213,32 +226,51 @@ def delete_task(
     return None
 
 
-# ============= Weekly Schedule Routes =============
+# ============= Schedule Routes =============
 
-@router.get("/", response_model=List[WeeklyScheduleResponse])
+@router.get("/", response_model=List[ScheduleResponse])
 def get_all_schedules(
     skip: int = 0,
     limit: int = 100,
-    status_filter: Optional[ScheduleStatus] = None,
+    status_filter: Optional[str] = None,
+    schedule_type: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Listar escalas semanais (filtro por status opcional)"""
-    query = db.query(WeeklySchedule)
+    """Listar escalas (filtro por status e tipo opcional)"""
+    query = db.query(Schedule)
     if status_filter:
-        query = query.filter(WeeklySchedule.status == status_filter)
+        query = query.filter(Schedule.status == status_filter)
+    if schedule_type:
+        query = query.filter(Schedule.schedule_type == schedule_type)
     schedules = query.offset(skip).limit(limit).all()
     return schedules
 
 
-@router.get("/{schedule_id}", response_model=WeeklyScheduleWithTasks)
+@router.get("/{schedule_id}", response_model=ScheduleResponse)
 def get_schedule_by_id(
     schedule_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Obter escala semanal com todas as tarefas (Admin vê tudo, funcionário vê só dele)"""
-    schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == schedule_id).first()
+    """Obter escala por ID (sem tarefas - use /tasks/all com filtro schedule_id)"""
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    if not schedule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Escala não encontrada"
+        )
+    return schedule
+
+
+@router.get("/{schedule_id}/with-tasks")
+def get_schedule_with_tasks(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Obter escala com todas as tarefas (Admin vê tudo, funcionário vê só dele)"""
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -257,29 +289,41 @@ def get_schedule_by_id(
         joinedload(ScheduleTask.apartment)
     ).all()
 
-    schedule.tasks = tasks
-    return schedule
+    # Retornar schedule + tasks manualmente
+    return {
+        **schedule.__dict__,
+        "tasks": [
+            {
+                **task.__dict__,
+                "employee_name": task.employee.full_name if task.employee else None,
+                "apartment_name": task.apartment.name if task.apartment else None,
+                "apartment_address": task.apartment.address if task.apartment else None
+            }
+            for task in tasks
+        ]
+    }
 
 
-@router.post("/", response_model=WeeklyScheduleResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
 def create_schedule(
-    schedule_data: WeeklyScheduleCreate,
+    schedule_data: ScheduleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Criar escala semanal (apenas Admin)"""
-    # Verificar se já existe escala para a mesma semana
-    existing = db.query(WeeklySchedule).filter(
-        WeeklySchedule.week_start == schedule_data.week_start
-    ).first()
+    """Criar escala (semanal, por período, ou avulsa)"""
+    # Para weekly, garantir unicidade por semana
+    if schedule_data.schedule_type == "weekly" and schedule_data.start_date:
+        existing = db.query(Schedule).filter(
+            Schedule.schedule_type == ScheduleType.WEEKLY,
+            Schedule.start_date == schedule_data.start_date
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Já existe uma escala semanal para esta semana"
+            )
 
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Já existe uma escala para esta semana"
-        )
-
-    new_schedule = WeeklySchedule(**schedule_data.model_dump())
+    new_schedule = Schedule(**schedule_data.model_dump())
 
     db.add(new_schedule)
     db.commit()
@@ -288,15 +332,15 @@ def create_schedule(
     return new_schedule
 
 
-@router.put("/{schedule_id}", response_model=WeeklyScheduleResponse)
+@router.put("/{schedule_id}", response_model=ScheduleResponse)
 def update_schedule(
     schedule_id: int,
-    schedule_data: WeeklyScheduleUpdate,
+    schedule_data: ScheduleUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Atualizar escala semanal (apenas Admin)"""
-    schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == schedule_id).first()
+    """Atualizar escala (apenas Admin)"""
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -319,8 +363,8 @@ def delete_schedule(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Deletar escala semanal (apenas Admin)"""
-    schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == schedule_id).first()
+    """Deletar escala (apenas Admin)"""
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

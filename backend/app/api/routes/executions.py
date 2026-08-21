@@ -8,7 +8,7 @@ from app.models.user import User, UserRole
 from app.models.task import ScheduleTask, TaskStatus
 from app.models.execution import TaskExecution
 from app.models.history import TaskHistory
-from app.models.schedule import WeeklySchedule
+from app.models.schedule import Schedule
 from app.schemas.execution import (
     CheckInRequest,
     CheckOutRequest,
@@ -216,13 +216,23 @@ def reschedule_task(
     # Aplicar alterações
     if new_date:
         parsed_date = parser.parse(new_date).date()
-        # Verificar se continua dentro da semana
-        schedule = db.query(WeeklySchedule).filter(WeeklySchedule.id == task.schedule_id).first()
-        if not (schedule.week_start <= parsed_date <= schedule.week_end):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A nova data está fora do período da escala"
-            )
+        # Verificar se continua dentro do período da escala (se houver)
+        if task.schedule_id:
+            schedule = db.query(Schedule).filter(Schedule.id == task.schedule_id).first()
+            if schedule:
+                if schedule.schedule_type == "weekly":
+                    if not (schedule.start_date <= parsed_date <= schedule.end_date):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="A nova data está fora do período da escala semanal"
+                        )
+                elif schedule.schedule_type == "date_range":
+                    if not (schedule.start_date <= parsed_date <= schedule.end_date):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="A nova data está fora do período da escala"
+                        )
+                # AD_HOC não tem validação de período
         task.scheduled_date = parsed_date
     
     if new_time:

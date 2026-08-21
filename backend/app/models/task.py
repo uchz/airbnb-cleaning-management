@@ -18,13 +18,13 @@ class TaskStatus(str, enum.Enum):
 
 
 class ScheduleTask(Base):
-    """Tarefa individual de limpeza dentro de uma escala"""
+    """Tarefa individual de limpeza (pode pertencer a uma escala ou ser avulsa)"""
     __tablename__ = "schedule_tasks"
     
     id = Column(Integer, primary_key=True, index=True)
     
     # Relacionamentos
-    schedule_id = Column(Integer, ForeignKey("weekly_schedules.id"), nullable=False)
+    schedule_id = Column(Integer, ForeignKey("schedules.id"), nullable=True, index=True)
     employee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     apartment_id = Column(Integer, ForeignKey("apartments.id"), nullable=False)
     
@@ -38,7 +38,7 @@ class ScheduleTask(Base):
     notes = Column(Text)
     
     # Relacionamentos
-    schedule = relationship("WeeklySchedule", back_populates="tasks")
+    schedule = relationship("Schedule", back_populates="tasks")
     employee = relationship("User", foreign_keys=[employee_id])
     apartment = relationship("Apartment")
     execution = relationship("TaskExecution", back_populates="task", uselist=False)

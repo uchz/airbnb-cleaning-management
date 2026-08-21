@@ -14,16 +14,16 @@ from app.schemas.apartment import (
     ApartmentResponse
 )
 from app.schemas.schedule import (
-    WeeklyScheduleBase,
-    WeeklyScheduleCreate,
-    WeeklyScheduleUpdate,
-    WeeklyScheduleResponse,
+    ScheduleBase,
+    ScheduleCreate,
+    ScheduleUpdate,
+    ScheduleResponse,
+    ScheduleWithTasks,
     ScheduleTaskBase,
     ScheduleTaskCreate,
     ScheduleTaskUpdate,
     ScheduleTaskResponse,
     ScheduleTaskDetailResponse,
-    WeeklyScheduleWithTasks
 )
 from app.schemas.execution import (
     TaskExecutionBase,
@@ -54,10 +54,10 @@ __all__ = [
     # Apartment
     "ApartmentBase", "ApartmentCreate", "ApartmentUpdate", "ApartmentResponse",
     # Schedule
-    "WeeklyScheduleBase", "WeeklyScheduleCreate", "WeeklyScheduleUpdate",
-    "WeeklyScheduleResponse", "ScheduleTaskBase", "ScheduleTaskCreate",
+    "ScheduleBase", "ScheduleCreate", "ScheduleUpdate",
+    "ScheduleResponse", "ScheduleWithTasks",
+    "ScheduleTaskBase", "ScheduleTaskCreate",
     "ScheduleTaskUpdate", "ScheduleTaskResponse", "ScheduleTaskDetailResponse",
-    "WeeklyScheduleWithTasks",
     # Execution
     "TaskExecutionBase", "CheckInRequest", "CheckOutRequest",
     "TaskExecutionResponse", "VideoUploadResponse",
