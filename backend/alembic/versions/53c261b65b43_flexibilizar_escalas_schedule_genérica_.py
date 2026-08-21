@@ -18,16 +18,18 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# Usar enums existentes ou criar novos com create_type=False
-# schedulestatus já existe do weekly_schedules
-# scheduletype é novo
-
 def upgrade() -> None:
-    # Criar novo enum scheduletype
-    scheduletype_enum = sa.Enum('WEEKLY', 'DATE_RANGE', 'AD_HOC', name='scheduletype')
-    scheduletype_enum.create(op.get_bind(), checkfirst=True)
+    # Garantir que enum scheduletype existe (criar se não existir)
+    # Usar raw SQL para evitar problemas de create_type
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE scheduletype AS ENUM ('WEEKLY', 'DATE_RANGE', 'AD_HOC');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
     
-    # Criar tabela schedules usando enums existentes/novos com create_type=False
+    # Criar tabela schedules usando enums existentes (schedulestatus já existe, scheduletype também)
     op.create_table('schedules',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('schedule_type', sa.Enum('WEEKLY', 'DATE_RANGE', 'AD_HOC', name='scheduletype', create_type=False), nullable=False),
@@ -46,7 +48,7 @@ def upgrade() -> None:
     # Migrar dados de weekly_schedules para schedules (manter dados existentes)
     op.execute("""
         INSERT INTO schedules (id, schedule_type, start_date, end_date, status, notes, created_at, updated_at)
-        SELECT id, 'WEEKLY'::scheduletype, week_start, end_date, status, notes, created_at, updated_at
+        SELECT id, 'WEEKLY'::scheduletype, week_start, week_end, status, notes, created_at, updated_at
         FROM weekly_schedules
     """)
     
@@ -86,7 +88,3 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_schedules_schedule_type'), table_name='schedules')
     op.drop_index(op.f('ix_schedules_id'), table_name='schedules')
     op.drop_table('schedules')
-    
-    # Remover enum scheduletype no downgrade
-    scheduletype_enum = sa.Enum('WEEKLY', 'DATE_RANGE', 'AD_HOC', name='scheduletype')
-    scheduletype_enum.drop(op.get_bind(), checkfirst=True)
