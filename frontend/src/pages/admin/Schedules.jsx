@@ -29,6 +29,9 @@ export default function Schedules() {
   const [loading, setLoading] = useState(true)
   const [showNewWeek, setShowNewWeek] = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
+  const [newScheduleType, setNewScheduleType] = useState('weekly')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [rescheduleTask, setRescheduleTask] = useState(null)
@@ -76,26 +79,48 @@ export default function Schedules() {
     setSelected(res.data)
   }
 
-  const handleCreateWeek = async (e) => {
+  const handleCreateSchedule = async (e) => {
     e.preventDefault()
-    const start = getWeekStart(new Date())
-    const weekStart = new Date(start)
-    weekStart.setDate(weekStart.getDate() + weekOffset * 7)
-    const weekEnd = addDays(weekStart, 6)
-
-    const startDate = new Date(weekStart)
-    if (startDate.getDay() !== 6) {
-      const diff = (startDate.getDay() + 1) % 7
-      startDate.setDate(startDate.getDate() - diff)
-    }
-
     try {
-      const res = await createSchedule({
-        schedule_type: 'weekly',
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(weekEnd, 'yyyy-MM-dd'),
-      })
+      let payload
+      if (newScheduleType === 'weekly') {
+        const start = getWeekStart(new Date())
+        const weekStart = new Date(start)
+        weekStart.setDate(weekStart.getDate() + weekOffset * 7)
+        const weekEnd = addDays(weekStart, 6)
+
+        const startDate = new Date(weekStart)
+        if (startDate.getDay() !== 6) {
+          const diff = (startDate.getDay() + 1) % 7
+          startDate.setDate(startDate.getDate() - diff)
+        }
+
+        payload = {
+          schedule_type: 'weekly',
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(weekEnd, 'yyyy-MM-dd'),
+        }
+      } else {
+        if (!customStart || !customEnd) {
+          setError('Informe a data inicial e final do período.')
+          return
+        }
+        if (customEnd < customStart) {
+          setError('A data final deve ser depois da inicial.')
+          return
+        }
+        payload = {
+          schedule_type: 'date_range',
+          start_date: customStart,
+          end_date: customEnd,
+        }
+      }
+
+      const res = await createSchedule(payload)
       setShowNewWeek(false)
+      setCustomStart('')
+      setCustomEnd('')
+      setNewScheduleType('weekly')
       await load()
       if (res.data.id) {
         const detail = await getScheduleWithTasks(res.data.id)
@@ -187,9 +212,9 @@ export default function Schedules() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            <span className="text-gradient">Escalas Semanais</span>
+            <span className="text-gradient">Escalas</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Sábado a sexta · organize as limpezas da semana</p>
+          <p className="text-sm text-gray-500 mt-1">Semanal (sáb–sex) ou por período customizado</p>
         </div>
         <Button onClick={() => setShowNewWeek(true)}>
           <span className="flex items-center gap-2">
@@ -354,23 +379,73 @@ export default function Schedules() {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Nova Escala Semanal</h2>
-              <form onSubmit={handleCreateWeek}>
-                <p className="text-sm text-gray-500 mb-4">
-                  A escala será criada para a semana de <strong>sábado a sexta-feira</strong>.
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset - 1)}>
-                    ←
-                  </Button>
-                  <div className="flex-1 text-center">
-                    {format(addDays(getWeekStart(new Date()), weekOffset * 7), 'dd/MM')} a{' '}
-                    {format(addDays(getWeekStart(new Date()), weekOffset * 7 + 6), 'dd/MM')}
-                  </div>
-                  <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset + 1)}>
-                    →
-                  </Button>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Nova Escala</h2>
+              <form onSubmit={handleCreateSchedule}>
+                {/* Tipo de escala */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setNewScheduleType('weekly'); setError('') }}
+                    className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                      newScheduleType === 'weekly'
+                        ? 'bg-brand-50 border-brand-400 text-brand-700 ring-1 ring-brand-300'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    Semanal (Sáb–Sex)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNewScheduleType('date_range'); setError('') }}
+                    className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                      newScheduleType === 'date_range'
+                        ? 'bg-brand-50 border-brand-400 text-brand-700 ring-1 ring-brand-300'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    Período custom
+                  </button>
                 </div>
+
+                {newScheduleType === 'weekly' ? (
+                  <>
+                    <p className="text-sm text-gray-500 mb-3">
+                      A escala será criada para a semana de <strong>sábado a sexta-feira</strong>.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset - 1)}>
+                        ←
+                      </Button>
+                      <div className="flex-1 text-center">
+                        {format(addDays(getWeekStart(new Date()), weekOffset * 7), 'dd/MM')} a{' '}
+                        {format(addDays(getWeekStart(new Date()), weekOffset * 7 + 6), 'dd/MM')}
+                      </div>
+                      <Button variant="outline" type="button" onClick={() => setWeekOffset(weekOffset + 1)}>
+                        →
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <Input
+                      label="Data inicial"
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      required
+                    />
+                    <Input
+                      label="Data final"
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-gray-400">
+                      Pode ser 1 dia, 2 dias, uma quinzena — o período que quiser.
+                    </p>
+                  </div>
+                )}
                 {error && (
                   <div className="bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-xl p-3 my-4">
                     {error}
