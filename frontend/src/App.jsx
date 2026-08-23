@@ -12,6 +12,7 @@ import Employees from './pages/admin/Employees'
 import Schedules from './pages/admin/Schedules'
 import Reports from './pages/admin/Reports'
 import Products from './pages/admin/Products'
+import Billing from './pages/admin/Billing'
 
 // Employee
 import MySchedule from './pages/employee/MySchedule'
@@ -92,6 +93,17 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <Layout>
                   <Products />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/billing"
+            element={
+              <ProtectedRoute requireAdmin>
+                <Layout>
+                  <Billing />
                 </Layout>
               </ProtectedRoute>
             }

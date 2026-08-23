@@ -2,7 +2,7 @@
 import { useAuth } from '../../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import { getLowStockProducts, changePassword } from '../../services'
-import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound } from 'lucide-react'
+import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound, CreditCard } from 'lucide-react'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import NotificationBell from './NotificationBell'
@@ -66,6 +66,7 @@ export default function Layout({ children }) {
         { to: '/schedules', label: 'Escalas', icon: CalendarDays },
         { to: '/reports', label: 'Relatórios', icon: BarChart3 },
         { to: '/products', label: 'Estoque', icon: Package },
+        { to: '/billing', label: 'Plano', icon: CreditCard },
       ]
     : [{ to: '/', label: 'Minha Escala', icon: ClipboardList }]
 

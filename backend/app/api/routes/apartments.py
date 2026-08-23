@@ -4,11 +4,14 @@ from typing import List
 from app.core.database import get_db
 from app.api.deps import get_current_active_admin, get_current_user
 from app.models.apartment import Apartment
+from app.models.organization import Organization
 from app.models.user import User
 from app.models.task import ScheduleTask, TaskStatus
 from app.models.checklist import ChecklistItem
 from app.schemas.apartment import ApartmentCreate, ApartmentUpdate, ApartmentResponse
 from app.schemas.history import ApartmentHistoryResponse, ApartmentHistoryItem, HistoryChecklistItem
+
+PLAN_LIMITS = {"free": 3, "basic": 10, "pro": 9999}
 
 router = APIRouter(prefix="/apartments", tags=["Apartments"])
 
@@ -112,6 +115,15 @@ def create_apartment(
 ):
     """Criar novo apartamento (apenas Admin)"""
     org_id = current_user.organization_id or 1
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    plan = (org.plan or "free") if org else "free"
+    limit = PLAN_LIMITS.get(plan, 3)
+    count = db.query(Apartment).filter(Apartment.organization_id == org_id).count()
+    if count >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=f"Limite do plano {plan} atingido ({limit} apartamentos). Faça upgrade em /billing."
+        )
     new_apartment = Apartment(**apartment_data.model_dump(), organization_id=org_id)
     
     db.add(new_apartment)
