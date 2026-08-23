@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import Landing from './pages/Landing'
 
 // Admin
 import AdminDashboard from './pages/admin/Dashboard'
@@ -24,6 +25,17 @@ function HomeRedirect() {
   return <MySchedule />
 }
 
+function LandingOrApp() {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen grid place-items-center"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>
+  if (!user) return <Landing />
+  return (
+    <Layout>
+      <HomeRedirect />
+    </Layout>
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -32,16 +44,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <HomeRedirect />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/" element={<LandingOrApp />} />
 
           <Route
             path="/apartments"
