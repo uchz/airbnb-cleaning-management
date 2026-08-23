@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -84,6 +84,10 @@ export default function Login() {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
+
+          <p className="text-center text-sm text-gray-400 mt-6">
+            Não tem conta? <Link to="/signup" className="text-brand-400 hover:text-brand-300 font-semibold">Criar organização</Link>
+          </p>
         </div>
 
         <p className="text-center text-xs text-gray-500 mt-6">
