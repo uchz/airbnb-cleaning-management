@@ -8,6 +8,7 @@ from app.api.routes.checklist import router as checklist_router
 from app.api.routes.products import router as products_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.calendar import router as calendar_router
+from app.api.routes.organizations import router as organizations_router
 
 __all__ = [
     "auth_router",
@@ -20,4 +21,5 @@ __all__ = [
     "products_router",
     "notifications_router",
     "calendar_router",
+    "organizations_router",
 ]

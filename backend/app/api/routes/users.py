@@ -17,8 +17,9 @@ def get_all_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Listar todos os usuários (apenas Admin)"""
-    users = db.query(User).offset(skip).limit(limit).all()
+    """Listar todos os usuários da organização (apenas Admin)"""
+    org_id = current_user.organization_id or 1
+    users = db.query(User).filter(User.organization_id == org_id).offset(skip).limit(limit).all()
     return users
 
 
@@ -29,8 +30,9 @@ def get_employees(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Listar apenas funcionários (apenas Admin)"""
-    employees = db.query(User).filter(User.role == UserRole.EMPLOYEE).offset(skip).limit(limit).all()
+    """Listar apenas funcionários da organização (apenas Admin)"""
+    org_id = current_user.organization_id or 1
+    employees = db.query(User).filter(User.role == UserRole.EMPLOYEE, User.organization_id == org_id).offset(skip).limit(limit).all()
     return employees
 
 
@@ -46,8 +48,9 @@ def get_user_by_id(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Obter usuário por ID (apenas Admin)"""
-    user = db.query(User).filter(User.id == user_id).first()
+    """Obter usuário por ID (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    user = db.query(User).filter(User.id == user_id, User.organization_id == org_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -63,8 +66,9 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Atualizar usuário (apenas Admin)"""
-    user = db.query(User).filter(User.id == user_id).first()
+    """Atualizar usuário (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    user = db.query(User).filter(User.id == user_id, User.organization_id == org_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -92,8 +96,9 @@ def delete_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Deletar usuário (apenas Admin)"""
-    user = db.query(User).filter(User.id == user_id).first()
+    """Deletar usuário (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    user = db.query(User).filter(User.id == user_id, User.organization_id == org_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
