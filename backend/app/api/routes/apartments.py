@@ -20,8 +20,9 @@ def get_all_apartments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Listar todos os apartamentos"""
-    apartments = db.query(Apartment).offset(skip).limit(limit).all()
+    """Listar todos os apartamentos (da organização)"""
+    org_id = current_user.organization_id or 1
+    apartments = db.query(Apartment).filter(Apartment.organization_id == org_id).offset(skip).limit(limit).all()
     return apartments
 
 
@@ -32,7 +33,8 @@ def get_apartment_by_id(
     current_user: User = Depends(get_current_user)
 ):
     """Obter apartamento por ID"""
-    apartment = db.query(Apartment).filter(Apartment.id == apartment_id).first()
+    org_id = current_user.organization_id or 1
+    apartment = db.query(Apartment).filter(Apartment.id == apartment_id, Apartment.organization_id == org_id).first()
     if not apartment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -48,7 +50,8 @@ def get_apartment_history(
     current_user: User = Depends(get_current_user)
 ):
     """Histórico de limpezas de um apartamento"""
-    apartment = db.query(Apartment).filter(Apartment.id == apartment_id).first()
+    org_id = current_user.organization_id or 1
+    apartment = db.query(Apartment).filter(Apartment.id == apartment_id, Apartment.organization_id == org_id).first()
     if not apartment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -108,7 +111,8 @@ def create_apartment(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Criar novo apartamento (apenas Admin)"""
-    new_apartment = Apartment(**apartment_data.model_dump())
+    org_id = current_user.organization_id or 1
+    new_apartment = Apartment(**apartment_data.model_dump(), organization_id=org_id)
     
     db.add(new_apartment)
     db.commit()
@@ -125,7 +129,8 @@ def update_apartment(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Atualizar apartamento (apenas Admin)"""
-    apartment = db.query(Apartment).filter(Apartment.id == apartment_id).first()
+    org_id = current_user.organization_id or 1
+    apartment = db.query(Apartment).filter(Apartment.id == apartment_id, Apartment.organization_id == org_id).first()
     if not apartment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,7 +155,8 @@ def delete_apartment(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Deletar apartamento (apenas Admin)"""
-    apartment = db.query(Apartment).filter(Apartment.id == apartment_id).first()
+    org_id = current_user.organization_id or 1
+    apartment = db.query(Apartment).filter(Apartment.id == apartment_id, Apartment.organization_id == org_id).first()
     if not apartment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

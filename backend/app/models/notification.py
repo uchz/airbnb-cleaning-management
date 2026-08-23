@@ -9,6 +9,8 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization = relationship("Organization")
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     # Conteúdo

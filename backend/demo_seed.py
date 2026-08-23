@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.core.database import SessionLocal, engine, Base
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
+from app.models.organization import Organization
 from app.models.apartment import Apartment
 from app.models.schedule import Schedule, ScheduleType
 from app.models.task import ScheduleTask, TaskType
@@ -17,9 +18,19 @@ db = SessionLocal()
 try:
     Base.metadata.create_all(bind=engine)
 
+    # Organização padrão
+    org = db.query(Organization).filter(Organization.slug == "default").first()
+    if not org:
+        org = Organization(name="Default Organization", slug="default", is_active=True)
+        db.add(org)
+        db.commit()
+        db.refresh(org)
+        print(f"Organização criada: {org.name} (id={org.id})")
+
     # Admin
     if not db.query(User).filter(User.username == "admin").first():
         admin = User(
+            organization_id=org.id,
             username="admin",
             hashed_password=get_password_hash("admin123"),
             full_name="Dono da Empresa",
@@ -33,6 +44,7 @@ try:
     # Funcionária
     if not db.query(User).filter(User.username == "maria").first():
         maria = User(
+            organization_id=org.id,
             username="maria",
             hashed_password=get_password_hash("maria123"),
             full_name="Maria Limpadora",
@@ -43,6 +55,10 @@ try:
         )
         db.add(maria)
         print("Funcionária criada: maria / maria123")
+    db.commit()
+
+    # Garantir que usuários existentes tenham organization_id
+    db.query(User).filter(User.organization_id == None).update({User.organization_id: org.id})
     db.commit()
 
     maria = db.query(User).filter(User.username == "maria").first()
@@ -56,19 +72,34 @@ try:
         {"name": "Apto Ingleses", "address": "Av. dos Ingleses, 950", "address_complement": "Apto 21", "city": "Florianópolis", "state": "SC", "estimated_cleaning_time": 75, "observations": "Tem máquina de lavar"},
         {"name": "Apto Canasvieiras", "address": "Rua da Praia, 330", "address_complement": "Apto 15", "city": "Florianópolis", "state": "SC", "estimated_cleaning_time": 60, "observations": ""},
     ]
-    if db.query(Apartment).count() == 0:
+    # Backfill organização para dados legados
+    db.query(Apartment).filter(Apartment.organization_id == None).update({Apartment.organization_id: org.id})
+    db.query(Schedule).filter(Schedule.organization_id == None).update({Schedule.organization_id: org.id})
+    # schedule_tasks e products também, se existirem
+    try:
+        from app.models.task import ScheduleTask as _ST
+        db.query(_ST).filter(_ST.organization_id == None).update({_ST.organization_id: org.id})
+    except: pass
+    try:
+        from app.models.product import Product as _P
+        db.query(_P).filter(_P.organization_id == None).update({_P.organization_id: org.id})
+    except: pass
+    db.commit()
+
+    if db.query(Apartment).filter(Apartment.organization_id == org.id).count() == 0:
         for data in aptos_data:
-            db.add(Apartment(**data))
+            db.add(Apartment(organization_id=org.id, **data))
         db.commit()
         print(f"{len(aptos_data)} apartamentos criados")
 
     # Escala por período (7 dias a partir de hoje)
-    if db.query(Schedule).count() == 0:
+    if db.query(Schedule).filter(Schedule.organization_id == org.id).count() == 0:
         today = date.today()
         period_start = today
         period_end = today + timedelta(days=6)
 
         schedule = Schedule(
+            organization_id=org.id,
             schedule_type=ScheduleType.DATE_RANGE,
             start_date=period_start,
             end_date=period_end,
@@ -91,6 +122,7 @@ try:
             task_date = period_start + timedelta(days=idx)
             h, m = map(int, time_str.split(":"))
             db.add(ScheduleTask(
+                organization_id=org.id,
                 schedule_id=schedule.id,
                 employee_id=maria.id,
                 apartment_id=apartamentos[apt_idx].id,

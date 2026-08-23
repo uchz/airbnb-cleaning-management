@@ -24,6 +24,8 @@ class ScheduleTask(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Relacionamentos
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization = relationship("Organization")
     schedule_id = Column(Integer, ForeignKey("schedules.id"), nullable=True, index=True)
     employee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     apartment_id = Column(Integer, ForeignKey("apartments.id"), nullable=False)

@@ -38,7 +38,8 @@ def get_all_tasks(
     current_user: User = Depends(get_current_user)
 ):
     """Listar todas as tarefas com filtros"""
-    query = db.query(ScheduleTask)
+    org_id = current_user.organization_id or 1
+    query = db.query(ScheduleTask).filter(ScheduleTask.organization_id == org_id)
 
     # Funcionário só vê as próprias tarefas
     if current_user.role == UserRole.EMPLOYEE:
@@ -158,7 +159,8 @@ def create_task(
             detail="Apartamento não encontrado"
         )
 
-    new_task = ScheduleTask(**task_data.model_dump())
+    org_id = current_user.organization_id or 1
+    new_task = ScheduleTask(**task_data.model_dump(), organization_id=org_id)
 
     db.add(new_task)
     db.flush()  # garante task.id antes de criar notificação
@@ -238,7 +240,8 @@ def get_all_schedules(
     current_user: User = Depends(get_current_user)
 ):
     """Listar escalas (filtro por status e tipo opcional)"""
-    query = db.query(Schedule)
+    org_id = current_user.organization_id or 1
+    query = db.query(Schedule).filter(Schedule.organization_id == org_id)
     if status_filter:
         query = query.filter(Schedule.status == status_filter)
     if schedule_type:
@@ -323,7 +326,8 @@ def create_schedule(
                 detail="Já existe uma escala semanal para esta semana"
             )
 
-    new_schedule = Schedule(**schedule_data.model_dump())
+    org_id = current_user.organization_id or 1
+    new_schedule = Schedule(**schedule_data.model_dump(), organization_id=org_id)
 
     db.add(new_schedule)
     db.commit()
@@ -370,6 +374,7 @@ def duplicate_schedule(
         )
 
     new_schedule = Schedule(
+        organization_id=schedule.organization_id,
         schedule_type=schedule.schedule_type,
         start_date=new_start,
         end_date=new_end,
@@ -380,6 +385,7 @@ def duplicate_schedule(
 
     for t in tasks:
         db.add(ScheduleTask(
+            organization_id=new_schedule.organization_id,
             schedule_id=new_schedule.id,
             employee_id=t.employee_id,
             apartment_id=t.apartment_id,

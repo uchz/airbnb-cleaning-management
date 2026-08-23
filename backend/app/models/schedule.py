@@ -22,6 +22,8 @@ class Schedule(Base):
     __tablename__ = "schedules"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization = relationship("Organization")
     schedule_type = Column(SQLEnum(ScheduleType), default=ScheduleType.WEEKLY, nullable=False, index=True)
     
     # Período da escala

@@ -34,8 +34,9 @@ def list_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Listar produtos do estoque"""
-    products = db.query(Product).order_by(Product.name).all()
+    """Listar produtos do estoque (da organização)"""
+    org_id = current_user.organization_id or 1
+    products = db.query(Product).filter(Product.organization_id == org_id).order_by(Product.name).all()
     return [_to_response(p) for p in products]
 
 
@@ -44,8 +45,9 @@ def low_stock_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Listar produtos com estoque baixo"""
-    products = db.query(Product).filter(Product.min_quantity > 0).all()
+    """Listar produtos com estoque baixo (da organização)"""
+    org_id = current_user.organization_id or 1
+    products = db.query(Product).filter(Product.organization_id == org_id, Product.min_quantity > 0).all()
     return [_to_response(p) for p in products if p.quantity <= p.min_quantity]
 
 
@@ -56,7 +58,8 @@ def create_product(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Criar produto (apenas Admin)"""
-    product = Product(**data.model_dump())
+    org_id = current_user.organization_id or 1
+    product = Product(**data.model_dump(), organization_id=org_id)
     db.add(product)
     db.commit()
     db.refresh(product)

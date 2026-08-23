@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -14,6 +15,9 @@ class Apartment(Base):
     state = Column(String)
     zipcode = Column(String)
     
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True, index=True)
+    organization = relationship("Organization")
+
     # Informações adicionais
     estimated_cleaning_time = Column(Integer)  # Tempo estimado em minutos
     observations = Column(Text)  # Observações gerais

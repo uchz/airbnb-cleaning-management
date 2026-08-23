@@ -30,7 +30,10 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     # Criar usuário
     hashed_password = get_password_hash(user_data.password)
+    # Multi-tenant: assign to default org if not specified
+    org_id = getattr(user_data, "organization_id", None) or 1
     new_user = User(
+        organization_id=org_id,
         username=user_data.username,
         hashed_password=hashed_password,
         full_name=user_data.full_name,
