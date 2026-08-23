@@ -157,17 +157,24 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.commit()
     elif etype in ("customer.subscription.updated", "customer.subscription.created"):
         status = obj.get("status")
-        # stripe status: active, past_due, canceled, unpaid
+        # stripe status: active, past_due, canceled, unpaid, incomplete
         org.subscription_status = status or org.subscription_status
         if obj.get("id"):
             org.stripe_subscription_id = obj["id"]
         # Se ativo, garantir plano (inferir pelo price)
         if status == "active" and org.plan == "free":
             org.plan = "basic"
+        # Cancelamento agendado (cancel_at_period_end) -> manter active até o fim, mas marcar
+        if obj.get("cancel_at_period_end"):
+            org.subscription_status = "canceled"
+        # Se já cancelado/incompleto
+        if status in ("canceled", "unpaid", "incomplete_expired"):
+            org.plan = "free"
         db.commit()
     elif etype == "customer.subscription.deleted":
         org.subscription_status = "canceled"
         org.plan = "free"
+        org.stripe_subscription_id = None
         db.commit()
 
     return {"received": True}
@@ -217,5 +224,36 @@ def create_portal_session(db: Session = Depends(get_db), current_user: User = De
     if not org.stripe_customer_id:
         raise HTTPException(status_code=400, detail="Nenhuma assinatura encontrada")
     return_url = settings.FRONTEND_URL + "/billing"
-    session = stripe.billing_portal.Session.create(customer=org.stripe_customer_id, return_url=return_url)
-    return {"url": session.url}
+    try:
+        session = stripe.billing_portal.Session.create(customer=org.stripe_customer_id, return_url=return_url)
+        return {"url": session.url}
+    except stripe.error.InvalidRequestError as e:
+        # Portal não configurado no Dashboard
+        msg = str(e)
+        if "configuration" in msg.lower() or "portal" in msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail="Portal do Stripe não configurado. Ative em Dashboard → Settings → Billing → Customer portal."
+            )
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@router.post("/cancel")
+def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_admin)):
+    """Cancelar assinatura diretamente (sem portal) — para teste"""
+    if not settings.STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="Billing não configurado")
+    import stripe
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    org = _get_org(db, current_user)
+    if not org.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="Nenhuma assinatura ativa")
+    try:
+        stripe.Subscription.delete(org.stripe_subscription_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao cancelar: {str(e)}")
+    org.subscription_status = "canceled"
+    org.plan = "free"
+    org.stripe_subscription_id = None
+    db.commit()
+    return {"plan": org.plan, "status": org.subscription_status}

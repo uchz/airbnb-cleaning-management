@@ -64,7 +64,27 @@ export default function Billing() {
       const res = await api.post('/billing/portal')
       window.location.href = res.data.url
     } catch (e) {
-      setError(e.response?.data?.detail || 'Erro ao abrir portal')
+      const msg = e.response?.data?.detail || 'Erro ao abrir portal'
+      // Se portal não configurado, oferecer cancelamento direto
+      if (msg.includes('Portal do Stripe não configurado')) {
+        if (confirm('Portal do Stripe não configurado no Dashboard. Deseja cancelar a assinatura diretamente (teste)?')) {
+          handleCancel()
+        } else {
+          setError(msg)
+        }
+      } else {
+        setError(msg)
+      }
+    }
+  }
+
+  const handleCancel = async () => {
+    if (!confirm('Cancelar assinatura? Voltará para o plano Free (3 aptos).')) return
+    try {
+      await api.post('/billing/cancel')
+      await load()
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Erro ao cancelar')
     }
   }
 
@@ -105,9 +125,16 @@ export default function Billing() {
               </p>
               <p className="text-sm text-gray-600">{sub.price_label} · até {sub.max_apartments} apartamentos</p>
             </div>
-            {sub.stripe_customer_id && (
-              <Button variant="outline" onClick={handlePortal}>Gerenciar assinatura</Button>
-            )}
+            <div className="flex gap-2">
+              {sub.stripe_customer_id && (
+                <Button variant="outline" onClick={handlePortal}>Gerenciar assinatura</Button>
+              )}
+              {sub.plan !== 'free' && sub.subscription_status === 'active' && (
+                <Button variant="outline" onClick={handleCancel} className="!text-rose-600 !border-rose-200 hover:!bg-rose-50">
+                  Cancelar plano
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
       )}
