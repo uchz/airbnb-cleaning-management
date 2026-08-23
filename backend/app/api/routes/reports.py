@@ -70,17 +70,19 @@ def employee_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Relatório de um funcionário no período (apenas Admin)"""
-    # Verificar funcionário
-    employee = db.query(User).filter(User.id == employee_id, User.role == UserRole.EMPLOYEE).first()
+    """Relatório de um funcionário no período (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    # Verificar funcionário (mesma org)
+    employee = db.query(User).filter(User.id == employee_id, User.role == UserRole.EMPLOYEE, User.organization_id == org_id).first()
     if not employee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Funcionário não encontrado"
         )
 
-    # Buscar tarefas do funcionário no período
+    # Buscar tarefas do funcionário no período (mesma org)
     tasks = db.query(ScheduleTask).filter(
+        ScheduleTask.organization_id == org_id,
         ScheduleTask.employee_id == employee_id,
         ScheduleTask.scheduled_date >= start_date,
         ScheduleTask.scheduled_date <= end_date
@@ -127,9 +129,11 @@ def general_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Relatório geral no período (apenas Admin)"""
-    # Buscar todas as tarefas no período
+    """Relatório geral no período (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    # Buscar todas as tarefas no período (mesma org)
     tasks = db.query(ScheduleTask).filter(
+        ScheduleTask.organization_id == org_id,
         ScheduleTask.scheduled_date >= start_date,
         ScheduleTask.scheduled_date <= end_date
     ).all()
@@ -139,10 +143,11 @@ def general_report(
     full_days_by_emp = {}
     half_days_by_emp = {}
 
+    org_id = current_user.organization_id or 1
     for task in tasks:
         emp_id = task.employee_id
         if emp_id not in employees_map:
-            emp = db.query(User).filter(User.id == emp_id).first()
+            emp = db.query(User).filter(User.id == emp_id, User.organization_id == org_id).first()
             employees_map[emp_id] = {
                 "id": emp_id,
                 "name": emp.full_name if emp else f"Funcionário {emp_id}",
@@ -197,8 +202,10 @@ def dashboard_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Dados agregados para o dashboard (apenas Admin)"""
+    """Dados agregados para o dashboard (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
     tasks = db.query(ScheduleTask).filter(
+        ScheduleTask.organization_id == org_id,
         ScheduleTask.scheduled_date >= start_date,
         ScheduleTask.scheduled_date <= end_date
     ).options(
