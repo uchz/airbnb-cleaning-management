@@ -66,7 +66,8 @@ def create_checkout_session(
     price_id = settings.STRIPE_PRICE_BASIC if plan == "basic" else settings.STRIPE_PRICE_PRO
 
     # Se não houver price_id configurado, criar com price_data inline (modo teste)
-    success_url = settings.STRIPE_SUCCESS_URL or f"{settings.FRONTEND_URL}/billing?success=1"
+    # IMPORTANTE: inclui {CHECKOUT_SESSION_ID} para o frontend poder verificar sem webhook
+    success_url = settings.STRIPE_SUCCESS_URL or f"{settings.FRONTEND_URL}/billing?success=1&session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = settings.STRIPE_CANCEL_URL or f"{settings.FRONTEND_URL}/billing?canceled=1"
 
     # Criar ou recuperar customer
@@ -170,6 +171,39 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.commit()
 
     return {"received": True}
+
+
+@router.post("/verify-session")
+def verify_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Verifica sessão do Stripe sem webhook — para teste. Atualiza plano se pagamento confirmado."""
+    if not settings.STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="Billing não configurado")
+    import stripe
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Sessão inválida: {str(e)}")
+    if session.get("payment_status") != "paid":
+        raise HTTPException(status_code=400, detail="Pagamento ainda não confirmado")
+    org = _get_org(db, current_user)
+    # Validar que a sessão pertence à mesma org (via metadata ou customer)
+    meta_org = session.get("metadata", {}).get("organization_id")
+    if meta_org and int(meta_org) != org.id:
+        raise HTTPException(status_code=403, detail="Sessão não pertence a esta organização")
+    plan = session.get("metadata", {}).get("plan") or "basic"
+    org.plan = plan
+    org.subscription_status = "active"
+    if session.get("subscription"):
+        org.stripe_subscription_id = session["subscription"]
+    if session.get("customer"):
+        org.stripe_customer_id = session["customer"]
+    db.commit()
+    return {"plan": org.plan, "status": org.subscription_status}
 
 
 @router.post("/portal")

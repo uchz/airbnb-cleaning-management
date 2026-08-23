@@ -16,6 +16,8 @@ export default function Billing() {
 
   const success = searchParams.get('success') === '1'
   const canceled = searchParams.get('canceled') === '1'
+  const sessionId = searchParams.get('session_id')
+  const [verifying, setVerifying] = useState(false)
 
   const load = async () => {
     try {
@@ -33,6 +35,17 @@ export default function Billing() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Sem webhook: verifica sessão do Stripe e ativa o plano
+  useEffect(() => {
+    if (success && sessionId) {
+      setVerifying(true)
+      api.post('/billing/verify-session', null, { params: { session_id: sessionId } })
+        .then(() => load())
+        .catch((e) => setError(e.response?.data?.detail || 'Erro ao verificar pagamento'))
+        .finally(() => setVerifying(false))
+    }
+  }, [success, sessionId])
 
   const handleCheckout = async (plan) => {
     setCheckoutLoading(plan)
@@ -70,7 +83,7 @@ export default function Billing() {
 
       {success && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-4 mb-6 flex items-center gap-2">
-          <Check size={18} /> Pagamento confirmado! Seu plano será atualizado em instantes.
+          <Check size={18} /> {verifying ? 'Verificando pagamento...' : 'Pagamento confirmado! Seu plano foi atualizado.'}
         </div>
       )}
       {canceled && (
