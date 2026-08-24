@@ -18,19 +18,27 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
   const startCamera = async () => {
     setError('')
     try {
-      // Prioriza câmera traseira quando disponível
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 } },
-        audio: true,
-      })
-      setStream(s)
-      if (videoRef.current) {
-        videoRef.current.srcObject = s
+      let s
+      try {
+        s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } },
+          audio: true,
+        })
+      } catch {
+        s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       }
+      setStream(s)
     } catch (err) {
       setError('Não foi possível acessar a câmera. Permita o acesso pelo navegador ou use a opção de adicionar vídeo.')
     }
   }
+
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream
+      videoRef.current.play().catch(() => {})
+    }
+  }, [stream])
 
   const stopCamera = () => {
     if (stream) {
@@ -129,10 +137,11 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
       <div className="relative bg-black rounded-xl overflow-hidden aspect-video flex items-center justify-center">
         <video
           ref={videoRef}
+          autoPlay
           playsInline
           muted
           controls={!!recorded}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover bg-black"
         />
         {!stream && !recorded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-900">
