@@ -30,6 +30,9 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    organization_id: Optional[int] = None
+    organization_name: Optional[str] = None
+    organization_slug: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     

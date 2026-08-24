@@ -4,6 +4,7 @@ from typing import List
 from app.core.database import get_db
 from app.api.deps import get_current_active_admin, get_current_user
 from app.models.user import User, UserRole
+from app.models.organization import Organization
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.core.security import get_password_hash
 
@@ -37,8 +38,22 @@ def get_employees(
 
 
 @router.get("/me", response_model=UserResponse)
-def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Obter informações do usuário atual"""
+def get_current_user_info(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Obter informações do usuário atual (com organização)"""
+    # Carregar organização para serializar
+    if current_user.organization_id:
+        org = db.query(current_user.organization.__class__).filter_by(id=current_user.organization_id).first() if hasattr(current_user, 'organization') else None
+        # fallback: query Organization diretamente
+        from app.models.organization import Organization
+        org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
+        current_user.organization_name = org.name if org else None
+        current_user.organization_slug = org.slug if org else None
+    else:
+        current_user.organization_name = None
+        current_user.organization_slug = None
     return current_user
 
 

@@ -121,6 +121,11 @@ export default function Layout({ children }) {
 
         {/* Usuário + sair */}
         <div className="p-4 border-t border-white/10">
+          {user?.organization_name && (
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-300/80 truncate mb-2 px-1">
+              {user.organization_name}
+            </p>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
               {initials || '?'}
@@ -171,6 +176,7 @@ export default function Layout({ children }) {
         </div>
         <div className="px-4 pb-3 flex items-center gap-2 text-xs text-gray-400">
           <span className="text-white font-semibold">{user?.full_name}</span>
+          {user?.organization_name && <span className="text-brand-300/80">· {user.organization_name}</span>}
           {isAdmin && <span className="bg-brand-600/20 text-brand-300 px-2 py-0.5 rounded-full font-medium">Admin</span>}
         </div>
       </header>

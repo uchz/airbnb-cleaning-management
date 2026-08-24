@@ -59,8 +59,7 @@ export default function Signup() {
         admin_phone: form.admin_phone || null,
       })
       localStorage.setItem('token', res.data.access_token)
-      // Buscar usuário logado via getMe implícito no AuthProvider reload
-      window.location.href = '/'
+      window.location.href = '/welcome'
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao criar conta')
     } finally {
