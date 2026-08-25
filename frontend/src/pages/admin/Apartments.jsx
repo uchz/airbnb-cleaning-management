@@ -3,7 +3,7 @@ import { getApartments, createApartment, updateApartment, deleteApartment, getCh
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { Pencil, Trash2, Plus, MapPin, ListChecks, X } from 'lucide-react'
+import { Pencil, Trash2, Plus, MapPin, ListChecks, X, Search } from 'lucide-react'
 
 const emptyForm = {
   name: '',
@@ -50,6 +50,13 @@ export default function Apartments() {
   const [checklistApartment, setChecklistApartment] = useState(null)
   const [checklistItems, setChecklistItems] = useState([])
   const [newChecklistItem, setNewChecklistItem] = useState('')
+  const [search, setSearch] = useState('')
+
+  const filtered = apartments.filter((ap) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return ap.name.toLowerCase().includes(q) || ap.city.toLowerCase().includes(q) || ap.address.toLowerCase().includes(q)
+  })
 
   const load = async () => {
     try {
@@ -185,18 +192,29 @@ export default function Apartments() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
             <span className="text-gradient">Apartamentos</span>
           </h1>
           <p className="text-sm text-gray-500 mt-1">Cadastre e gerencie os imóveis atendidos</p>
         </div>
-        <Button onClick={openCreate}>
-          <span className="flex items-center gap-2">
-            <Plus size={16} /> Novo Apartamento
-          </span>
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou cidade..."
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400"
+            />
+          </div>
+          <Button onClick={openCreate} className="shrink-0">
+            <span className="flex items-center gap-2">
+              <Plus size={16} /> Novo
+            </span>
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -208,7 +226,12 @@ export default function Apartments() {
               Nenhum apartamento cadastrado ainda.
             </Card>
           )}
-          {apartments.map((ap) => (
+          {apartments.length > 0 && filtered.length === 0 && (
+            <Card className="p-8 text-center text-gray-500 md:col-span-2 lg:col-span-3">
+              Nenhum resultado para "{search}".
+            </Card>
+          )}
+          {filtered.map((ap) => (
             <Card key={ap.id} className="p-4 flex flex-col">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900">{ap.name}</h3>
