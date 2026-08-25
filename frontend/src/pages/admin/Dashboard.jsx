@@ -37,29 +37,28 @@ export default function AdminDashboard() {
   const [recentTasks, setRecentTasks] = useState([])
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [startDate, setStartDate] = useState(() => format(getWeekStart(), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(() => {
+    const e = new Date(getWeekStart())
+    e.setDate(e.getDate() + 6)
+    return format(e, 'yyyy-MM-dd')
+  })
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const weekStart = getWeekStart()
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekEnd.getDate() + 6)
-
+  const load = async () => {
+    setLoading(true)
+    try {
         const [employees, apartments, schedules, tasksRes, dashRes] = await Promise.all([
           getEmployees(),
           getApartments(),
           getSchedules(),
           getTasks({
-            start_date: format(weekStart, 'yyyy-MM-dd'),
-            end_date: format(weekEnd, 'yyyy-MM-dd'),
+            start_date: startDate,
+            end_date: endDate,
           }),
-          getDashboardData(format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')),
+          getDashboardData(startDate, endDate),
         ])
 
-        const general = await getGeneralReport(
-          format(weekStart, 'yyyy-MM-dd'),
-          format(weekEnd, 'yyyy-MM-dd')
-        )
+        const general = await getGeneralReport(startDate, endDate)
 
         const allTasks = tasksRes.data
         const completed = allTasks.filter((t) => t.status === 'completed').length
@@ -85,6 +84,8 @@ export default function AdminDashboard() {
         setLoading(false)
       }
     }
+
+  useEffect(() => {
     load()
   }, [])
 
@@ -118,22 +119,45 @@ export default function AdminDashboard() {
       grad: 'from-amber-500 to-orange-400',
       shadow: 'shadow-amber-500/30',
     },
-    {
-      label: 'Conclusão na semana',
-      value: `${stats.completionRate || 0}%`,
-      icon: TrendingUp,
-      grad: 'from-emerald-500 to-teal-400',
-      shadow: 'shadow-emerald-500/30',
-    },
+      {
+        label: 'Conclusão no período',
+        value: `${stats.completionRate || 0}%`,
+        icon: TrendingUp,
+        grad: 'from-emerald-500 to-teal-400',
+        shadow: 'shadow-emerald-500/30',
+      },
   ]
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-          Painel de <span className="text-gradient">Controle</span>
-        </h1>
-        <p className="text-gray-500 mt-1">Visão geral da operação desta semana</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+            Painel de <span className="text-gradient">Controle</span>
+          </h1>
+          <p className="text-gray-500 mt-1">Visão geral da operação no período</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+          <span className="text-gray-400 text-sm">até</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+          <button
+            onClick={load}
+            className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700"
+          >
+            Filtrar
+          </button>
+        </div>
       </div>
 
       {/* Cards de gradiente */}
@@ -165,7 +189,7 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
               <Clock4 size={20} />
             </div>
-            <p className="font-semibold text-gray-700">Tarefas na semana</p>
+            <p className="font-semibold text-gray-700">Tarefas no período</p>
           </div>
           <p className="text-3xl font-extrabold text-gray-900">{stats.totalTasks}</p>
           <div className="flex gap-2 mt-3">
@@ -190,7 +214,7 @@ export default function AdminDashboard() {
           </div>
           <p className="text-xs text-gray-500 mt-2">
             {stats.totalTasks > 0
-              ? `${((stats.completed / stats.totalTasks) * 100).toFixed(0)}% da semana concluída`
+              ? `${((stats.completed / stats.totalTasks) * 100).toFixed(0)}% do período concluído`
               : 'Sem tarefas ainda'}
           </p>
         </Card>
@@ -218,25 +242,29 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h2 className="font-bold text-gray-900">Tarefas por dia</h2>
-                <p className="text-xs text-gray-500">Total vs concluídas na semana</p>
+                <p className="text-xs text-gray-500">Total vs concluídas no período</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dashboard.tasks_by_day.map((d) => ({
-                ...d,
-                dia: format(new Date(d.date + 'T00:00:00'), 'dd/MM'),
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} width={28} />
-                <Tooltip
-                  formatter={(value, name) => (name === 'total' ? ['Total', 'Tarefas'] : ['Concluídas', 'Tarefas'])}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
-                />
-                <Bar dataKey="total" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="total" />
-                <Bar dataKey="completed" fill="#10b981" radius={[4, 4, 0, 0]} name="completed" />
-              </BarChart>
-            </ResponsiveContainer>
+            {dashboard.tasks_by_day.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-16">Sem dados neste período</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={dashboard.tasks_by_day.map((d) => ({
+                  ...d,
+                  dia: format(new Date(d.date + 'T00:00:00'), 'dd/MM'),
+                }))} aria-label="Tarefas por dia no período">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} width={28} />
+                  <Tooltip
+                    formatter={(value, name) => (name === 'total' ? ['Total', 'Tarefas'] : ['Concluídas', 'Tarefas'])}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+                  />
+                  <Bar dataKey="total" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="total" />
+                  <Bar dataKey="completed" fill="#10b981" radius={[4, 4, 0, 0]} name="completed" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
 
           {/* Status */}
@@ -250,30 +278,34 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-500">Distribuição do período</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={dashboard.tasks_by_status.filter((s) => s.count > 0)}
-                  dataKey="count"
-                  nameKey="status"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={3}
-                >
-                  {dashboard.tasks_by_status.filter((s) => s.count > 0).map((entry) => (
-                    <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => [value, STATUS_NAMES[name] || name]}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
-                />
-                <Legend
-                  formatter={(value) => STATUS_NAMES[value] || value}
-                  wrapperStyle={{ fontSize: 12 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {dashboard.tasks_by_status.filter((s) => s.count > 0).length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-16">Sem dados neste período</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={dashboard.tasks_by_status.filter((s) => s.count > 0)}
+                    dataKey="count"
+                    nameKey="status"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={3}
+                  >
+                    {dashboard.tasks_by_status.filter((s) => s.count > 0).map((entry) => (
+                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => [value, STATUS_NAMES[name] || name]}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+                  />
+                  <Legend
+                    formatter={(value) => STATUS_NAMES[value] || value}
+                    wrapperStyle={{ fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </Card>
 
           {/* Por apartamento */}
@@ -287,22 +319,26 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-500">Número de limpezas no período</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart
-                data={dashboard.tasks_by_apartment}
-                layout="vertical"
-                margin={{ left: 8, right: 16 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
-                <YAxis type="category" dataKey="apartment_name" width={110} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <Tooltip
-                  formatter={(value) => [value, 'Limpezas']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
-                />
-                <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {dashboard.tasks_by_apartment.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-16">Sem dados neste período</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={dashboard.tasks_by_apartment}
+                  layout="vertical"
+                  margin={{ left: 8, right: 16 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="apartment_name" width={110} tick={{ fontSize: 11, fill: '#64748b' }} />
+                  <Tooltip
+                    formatter={(value) => [value, 'Limpezas']}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+                  />
+                  <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
 
           {/* Diárias por funcionário */}
@@ -316,20 +352,24 @@ export default function AdminDashboard() {
                 <p className="text-xs text-gray-500">Inteiras vs meias no período</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dashboard.employee_diarias} margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="employee_name" tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} width={28} />
-                <Tooltip
-                  formatter={(value, name) => (name === 'full_days' ? [value, 'Diárias inteiras'] : [value, 'Meias diárias'])}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="full_days" fill="#10b981" radius={[4, 4, 0, 0]} name="full_days" />
-                <Bar dataKey="half_days" fill="#fbbf24" radius={[4, 4, 0, 0]} name="half_days" />
-              </BarChart>
-            </ResponsiveContainer>
+            {dashboard.employee_diarias.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-16">Sem dados neste período</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={dashboard.employee_diarias} margin={{ left: 8, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="employee_name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} allowDecimals={false} width={28} />
+                  <Tooltip
+                    formatter={(value, name) => (name === 'full_days' ? [value, 'Diárias inteiras'] : [value, 'Meias diárias'])}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="full_days" fill="#10b981" radius={[4, 4, 0, 0]} name="full_days" />
+                  <Bar dataKey="half_days" fill="#fbbf24" radius={[4, 4, 0, 0]} name="half_days" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </div>
       )}
@@ -338,7 +378,7 @@ export default function AdminDashboard() {
       <Card className="overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
           <div>
-            <h2 className="font-bold text-gray-900">Tarefas da semana</h2>
+            <h2 className="font-bold text-gray-900">Tarefas do período</h2>
             <p className="text-sm text-gray-500">Acompanhe o andamento das limpezas</p>
           </div>
           <Link
@@ -363,7 +403,7 @@ export default function AdminDashboard() {
               {recentTasks.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-gray-500">
-                    Nenhuma tarefa nesta semana. Crie a escala para começar.
+                    Nenhuma tarefa neste período. Ajuste as datas ou crie a escala para começar.
                   </td>
                 </tr>
               )}
