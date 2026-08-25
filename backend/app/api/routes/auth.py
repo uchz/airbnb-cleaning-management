@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from pydantic import BaseModel
 from app.core.database import get_db
 from app.api.deps import get_current_user
-from app.core.security import verify_password, create_access_token, get_password_hash
+from app.core.security import verify_password, create_access_token, get_password_hash, decode_access_token
 from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import UserLogin, Token, UserCreate, UserResponse
@@ -18,8 +18,8 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Registrar novo usuário (apenas Admin pode criar)"""
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+    """Registrar novo usuário (usa org do admin logado se houver token)"""
     # Verificar se username já existe
     existing_user = db.query(User).filter(User.username == user_data.username).first()
     if existing_user:
@@ -30,8 +30,21 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     # Criar usuário
     hashed_password = get_password_hash(user_data.password)
-    # Multi-tenant: assign to default org if not specified
-    org_id = getattr(user_data, "organization_id", None) or 1
+    # Multi-tenant: se chamado com token de admin, herda a org dele; senão default (signup inicial)
+    org_id = getattr(user_data, "organization_id", None)
+    if not org_id:
+        auth = request.headers.get("authorization") or request.headers.get("Authorization")
+        if auth and auth.lower().startswith("bearer "):
+            try:
+                payload = decode_access_token(auth.split(" ", 1)[1])
+                uid = int(payload.get("sub")) if payload and payload.get("sub") else None
+                if uid:
+                    cur = db.query(User).filter(User.id == uid).first()
+                    if cur and cur.organization_id:
+                        org_id = cur.organization_id
+            except: pass
+    if not org_id:
+        org_id = 1
     new_user = User(
         organization_id=org_id,
         username=user_data.username,
