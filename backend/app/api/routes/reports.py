@@ -251,12 +251,12 @@ def dashboard_data(
         for name, c in sorted(apt_map.items(), key=lambda x: x[1], reverse=True)[:8]
     ]
 
-    # Diárias por funcionário
+    # Diárias por funcionário (mesma org)
     emp_map = {}
     for task in tasks:
         emp_id = task.employee_id
         if emp_id not in emp_map:
-            emp = db.query(User).filter(User.id == emp_id).first()
+            emp = db.query(User).filter(User.id == emp_id, User.organization_id == org_id).first()
             emp_map[emp_id] = {
                 "name": emp.full_name if emp else f"Funcionário {emp_id}",
                 "full_days": set(),

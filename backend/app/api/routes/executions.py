@@ -29,6 +29,7 @@ def get_execution_by_task(
     current_user: User = Depends(get_current_user)
 ):
     """Obter execução de uma tarefa"""
+    org_id = current_user.organization_id or 1
     execution = db.query(TaskExecution).filter(TaskExecution.task_id == task_id).first()
     if not execution:
         raise HTTPException(
@@ -36,8 +37,10 @@ def get_execution_by_task(
             detail="Execução não encontrada"
         )
     
-    # Verificar permissão
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    # Verificar permissão e organização
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada")
     if current_user.role == UserRole.EMPLOYEE and task.employee_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -60,8 +63,9 @@ async def checkin(
     - Grava o vídeo mostrando o estado inicial do apartamento
     - Registra o horário de entrada
     """
-    # Verificar permissão e tarefa
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    # Verificar permissão e tarefa (mesma org)
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada")
     
@@ -130,8 +134,9 @@ async def checkout(
     - Registra o horário de saída
     - Marca a tarefa como concluída
     """
-    # Verificar permissão e tarefa
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    # Verificar permissão e tarefa (mesma org)
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada")
     
@@ -202,7 +207,8 @@ def reschedule_task(
     - Pode alterar data, horário e/ou funcionário
     - Registra histórico da alteração
     """
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada")
     
@@ -239,7 +245,7 @@ def reschedule_task(
         task.scheduled_time = parser.parse(new_time).time()
     
     if new_employee_id:
-        employee = db.query(User).filter(User.id == new_employee_id).first()
+        employee = db.query(User).filter(User.id == new_employee_id, User.organization_id == org_id).first()
         if not employee:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Funcionário não encontrado")
         task.employee_id = new_employee_id

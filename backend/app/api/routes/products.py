@@ -73,8 +73,9 @@ def update_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Atualizar produto (apenas Admin)"""
-    product = db.query(Product).filter(Product.id == product_id).first()
+    """Atualizar produto (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    product = db.query(Product).filter(Product.id == product_id, Product.organization_id == org_id).first()
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado")
     
@@ -92,8 +93,9 @@ def delete_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Excluir produto (apenas Admin)"""
-    product = db.query(Product).filter(Product.id == product_id).first()
+    """Excluir produto (apenas Admin, mesma organização)"""
+    org_id = current_user.organization_id or 1
+    product = db.query(Product).filter(Product.id == product_id, Product.organization_id == org_id).first()
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado")
     db.delete(product)

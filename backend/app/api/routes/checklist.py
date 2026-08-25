@@ -5,6 +5,7 @@ from datetime import datetime
 from app.core.database import get_db
 from app.api.deps import get_current_user, get_current_active_admin
 from app.models.user import User
+from app.models.apartment import Apartment
 from app.models.checklist import ChecklistTemplate, ChecklistItem
 from app.models.task import ScheduleTask
 from app.schemas.checklist import (
@@ -26,7 +27,11 @@ def create_template(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_admin)
 ):
-    """Criar item de template de checklist para um apartamento (apenas Admin)"""
+    """Criar item de template de checklist para um apartamento (apenas Admin, mesma org)"""
+    org_id = current_user.organization_id or 1
+    apt = db.query(Apartment).filter(Apartment.id == data.apartment_id, Apartment.organization_id == org_id).first()
+    if not apt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Apartamento não encontrado")
     template = ChecklistTemplate(**data.model_dump())
     db.add(template)
     db.commit()
@@ -40,7 +45,11 @@ def get_apartment_templates(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Listar templates de checklist de um apartamento"""
+    """Listar templates de checklist de um apartamento (mesma org)"""
+    org_id = current_user.organization_id or 1
+    apt = db.query(Apartment).filter(Apartment.id == apartment_id, Apartment.organization_id == org_id).first()
+    if not apt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Apartamento não encontrado")
     templates = db.query(ChecklistTemplate).filter(
         ChecklistTemplate.apartment_id == apartment_id
     ).order_by(ChecklistTemplate.order).all()
@@ -70,8 +79,9 @@ def get_task_checklist(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Obter checklist de uma tarefa (cria automaticamente se não existir)"""
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    """Obter checklist de uma tarefa (cria automaticamente se não existir, mesma org)"""
+    org_id = current_user.organization_id or 1
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada")
     
@@ -111,9 +121,14 @@ def update_checklist_item(
     current_user: User = Depends(get_current_user)
 ):
     """Marcar/desmarcar item do checklist"""
+    org_id = current_user.organization_id or 1
     item = db.query(ChecklistItem).filter(ChecklistItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item não encontrado")
+    # Verificar que a tarefa do item pertence à mesma org
+    task_check = db.query(ScheduleTask).filter(ScheduleTask.id == item.task_id, ScheduleTask.organization_id == org_id).first()
+    if not task_check:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado")
     
     item.is_checked = data.is_checked
     if data.is_checked:

@@ -83,7 +83,8 @@ def get_task_by_id(
     current_user: User = Depends(get_current_user)
 ):
     """Obter tarefa por ID"""
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -110,6 +111,7 @@ def get_task_by_id(
 def _validate_task_dates(db: Session, task_data, schedule_id: Optional[int]):
     """Validar se a data da tarefa está dentro do período da escala (se houver)"""
     if schedule_id:
+        # Validar que a escala pertence à mesma organização do usuário logado será feito pelo caller
         schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
         if not schedule:
             raise HTTPException(
@@ -143,23 +145,23 @@ def create_task(
     if task_data.schedule_id:
         _validate_task_dates(db, task_data, task_data.schedule_id)
 
-    # Verificar se funcionário existe
-    employee = db.query(User).filter(User.id == task_data.employee_id).first()
+    org_id = current_user.organization_id or 1
+    # Verificar se funcionário existe na mesma org
+    employee = db.query(User).filter(User.id == task_data.employee_id, User.organization_id == org_id).first()
     if not employee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Funcionário não encontrado"
         )
 
-    # Verificar se apartamento existe
-    apartment = db.query(Apartment).filter(Apartment.id == task_data.apartment_id).first()
+    # Verificar se apartamento existe na mesma org
+    apartment = db.query(Apartment).filter(Apartment.id == task_data.apartment_id, Apartment.organization_id == org_id).first()
     if not apartment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Apartamento não encontrado"
         )
 
-    org_id = current_user.organization_id or 1
     new_task = ScheduleTask(**task_data.model_dump(), organization_id=org_id)
 
     db.add(new_task)
@@ -182,7 +184,8 @@ def update_task(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Atualizar tarefa (apenas Admin)"""
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -215,7 +218,8 @@ def delete_task(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Deletar tarefa (apenas Admin)"""
-    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id).first()
+    org_id = current_user.organization_id or 1
+    task = db.query(ScheduleTask).filter(ScheduleTask.id == task_id, ScheduleTask.organization_id == org_id).first()
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -257,7 +261,8 @@ def get_schedule_by_id(
     current_user: User = Depends(get_current_user)
 ):
     """Obter escala por ID (sem tarefas - use /tasks/all com filtro schedule_id)"""
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    org_id = current_user.organization_id or 1
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id, Schedule.organization_id == org_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -273,7 +278,8 @@ def get_schedule_with_tasks(
     current_user: User = Depends(get_current_user)
 ):
     """Obter escala com todas as tarefas (Admin vê tudo, funcionário vê só dele)"""
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    org_id = current_user.organization_id or 1
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id, Schedule.organization_id == org_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -317,6 +323,7 @@ def create_schedule(
     # Para weekly, garantir unicidade por semana
     if schedule_data.schedule_type == "weekly" and schedule_data.start_date:
         existing = db.query(Schedule).filter(
+            Schedule.organization_id == org_id,
             Schedule.schedule_type == ScheduleType.WEEKLY,
             Schedule.start_date == schedule_data.start_date
         ).first()
@@ -343,7 +350,8 @@ def duplicate_schedule(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Duplicar escala para o próximo período (mesma duração, mesmas tarefas deslocadas)"""
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    org_id = current_user.organization_id or 1
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id, Schedule.organization_id == org_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -355,15 +363,16 @@ def duplicate_schedule(
             detail="Escala sem período definido não pode ser duplicada"
         )
 
-    tasks = db.query(ScheduleTask).filter(ScheduleTask.schedule_id == schedule_id).all()
+    tasks = db.query(ScheduleTask).filter(ScheduleTask.schedule_id == schedule_id, ScheduleTask.organization_id == org_id).all()
 
     length = (schedule.end_date - schedule.start_date).days + 1
     new_start = schedule.end_date + timedelta(days=1)
     new_end = new_start + timedelta(days=length - 1)
     delta = new_start - schedule.start_date
 
-    # Verificar se já não existe escala nesse novo período (qualquer tipo com datas iguais)
+    # Verificar se já não existe escala nesse novo período na mesma org
     clash = db.query(Schedule).filter(
+        Schedule.organization_id == org_id,
         Schedule.start_date == new_start,
         Schedule.end_date == new_end,
     ).first()
@@ -412,7 +421,8 @@ def update_schedule(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Atualizar escala (apenas Admin)"""
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    org_id = current_user.organization_id or 1
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id, Schedule.organization_id == org_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -436,7 +446,8 @@ def delete_schedule(
     current_user: User = Depends(get_current_active_admin)
 ):
     """Deletar escala (apenas Admin)"""
-    schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+    org_id = current_user.organization_id or 1
+    schedule = db.query(Schedule).filter(Schedule.id == schedule_id, Schedule.organization_id == org_id).first()
     if not schedule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -444,7 +455,7 @@ def delete_schedule(
         )
 
     # Verificar se há tarefas
-    task_count = db.query(ScheduleTask).filter(ScheduleTask.schedule_id == schedule_id).count()
+    task_count = db.query(ScheduleTask).filter(ScheduleTask.schedule_id == schedule_id, ScheduleTask.organization_id == org_id).count()
     if task_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
