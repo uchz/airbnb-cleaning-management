@@ -304,7 +304,7 @@ export default function Apartments() {
                     onChange={(e) => setForm({ ...form, address_complement: e.target.value })}
                     placeholder="Apto 45"
                   />
-                  <div>
+                    <div>
                     <Input
                       label="CEP"
                       value={form.zipcode}
@@ -313,7 +313,6 @@ export default function Apartments() {
                       inputMode="numeric"
                       maxLength={9}
                       autoComplete="postal-code"
-                      required={!editing}
                     />
                     {cepState === 'loading' && (
                       <p className="mt-1 text-xs text-gray-500 flex items-center gap-1.5">
@@ -350,7 +349,13 @@ export default function Apartments() {
                   label="Tempo estimado de limpeza (minutos)"
                   type="number"
                   value={form.estimated_cleaning_time}
-                  onChange={(e) => setForm({ ...form, estimated_cleaning_time: e.target.value })}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '' || Number(v) >= 0) setForm({ ...form, estimated_cleaning_time: v })
+                  }}
+                  min={5}
+                  step={5}
+                  placeholder="Ex: 60"
                 />
                 <Input
                   label="Observações"
