@@ -19,17 +19,7 @@ class ChangePasswordRequest(BaseModel):
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
-    """Registrar novo usuário (usa org do admin logado se houver token)"""
-    # Verificar se username já existe
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário já cadastrado"
-        )
-    
-    # Criar usuário
-    hashed_password = get_password_hash(user_data.password)
+    """Registrar novo usuário (único por organização)"""
     # Multi-tenant: se chamado com token de admin, herda a org dele; senão default (signup inicial)
     org_id = getattr(user_data, "organization_id", None)
     if not org_id:
@@ -45,6 +35,16 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
             except: pass
     if not org_id:
         org_id = 1
+    # Verificar se username já existe NESTA organização
+    existing_user = db.query(User).filter(User.username == user_data.username, User.organization_id == org_id).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário já cadastrado nesta organização"
+        )
+    
+    # Criar usuário
+    hashed_password = get_password_hash(user_data.password)
     new_user = User(
         organization_id=org_id,
         username=user_data.username,
@@ -64,11 +64,16 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 
 @router.post("/login", response_model=Token)
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    """Login de usuário"""
-    # Buscar usuário pelo username
-    user = db.query(User).filter(User.username == user_credentials.username).first()
+    """Login de usuário (permite mesmo username em orgs diferentes)"""
+    # Buscar todos com o username (pode haver duplicatas por org) e validar senha
+    candidates = db.query(User).filter(User.username == user_credentials.username).all()
+    user = None
+    for cand in candidates:
+        if verify_password(user_credentials.password, cand.hashed_password):
+            user = cand
+            break
     
-    if not user or not verify_password(user_credentials.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário ou senha incorretos",

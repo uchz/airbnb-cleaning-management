@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -12,9 +12,12 @@ class UserRole(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'username', name='uq_user_org_username'),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     phone = Column(String)
