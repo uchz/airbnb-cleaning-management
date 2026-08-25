@@ -1,7 +1,7 @@
 {
-  "name": "Limpeza Airbnb — Gestão de Limpezas",
-  "short_name": "Limpeza",
-  "description": "Gestão de escalas e limpezas de apartamentos",
+  "name": "Verus Sweeply",
+  "short_name": "Verus Sweeply",
+  "description": "Gestão de escalas e limpezas de apartamentos — Verus Sweeply",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
