@@ -51,12 +51,18 @@ export default function Apartments() {
   const [checklistItems, setChecklistItems] = useState([])
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [search, setSearch] = useState('')
+  const [confirmApartment, setConfirmApartment] = useState(null)
+  const [confirmChecklistItem, setConfirmChecklistItem] = useState(null)
+  const [page, setPage] = useState(1)
+  const perPage = 9
 
   const filtered = apartments.filter((ap) => {
     const q = search.trim().toLowerCase()
     if (!q) return true
     return ap.name.toLowerCase().includes(q) || ap.city.toLowerCase().includes(q) || ap.address.toLowerCase().includes(q)
   })
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage)
 
   const load = async () => {
     try {
@@ -72,6 +78,10 @@ export default function Apartments() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search])
 
   const openCreate = () => {
     setEditing(null)
@@ -139,11 +149,16 @@ export default function Apartments() {
     }
   }
 
-  const removeChecklistItem = async (item) => {
-    if (!confirm(`Remover "${item.item_name}" do checklist?`)) return
+  const removeChecklistItem = (item) => {
+    setConfirmChecklistItem(item)
+  }
+
+  const confirmRemoveChecklistItem = async () => {
+    if (!confirmChecklistItem) return
     try {
-      await deleteChecklistTemplate(item.id)
-      setChecklistItems((prev) => prev.filter((i) => i.id !== item.id))
+      await deleteChecklistTemplate(confirmChecklistItem.id)
+      setChecklistItems((prev) => prev.filter((i) => i.id !== confirmChecklistItem.id))
+      setConfirmChecklistItem(null)
     } catch (err) {
       alert(err.response?.data?.detail || 'Erro ao remover item')
     }
@@ -180,10 +195,15 @@ export default function Apartments() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este apartamento?')) return
+  const handleDelete = (id) => {
+    setConfirmApartment(apartments.find((ap) => ap.id === id) || { id })
+  }
+
+  const confirmDeleteApartment = async () => {
+    if (!confirmApartment) return
     try {
-      await deleteApartment(id)
+      await deleteApartment(confirmApartment.id)
+      setConfirmApartment(null)
       await load()
     } catch (err) {
       alert(err.response?.data?.detail || 'Erro ao excluir apartamento')
@@ -222,8 +242,17 @@ export default function Apartments() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {apartments.length === 0 && (
-            <Card className="p-8 text-center text-gray-500 md:col-span-2 lg:col-span-3">
-              Nenhum apartamento cadastrado ainda.
+            <Card className="p-10 text-center md:col-span-2 lg:col-span-3">
+              <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 grid place-items-center mx-auto mb-3">
+                <Building2 size={22} />
+              </div>
+              <p className="font-semibold text-gray-900">Nenhum apartamento ainda</p>
+              <p className="text-sm text-gray-500 mt-1">Cadastre seu primeiro imóvel para começar a montar escalas.</p>
+              <Button onClick={openCreate} className="mt-4">
+                <span className="flex items-center gap-2">
+                  <Plus size={16} /> Criar apartamento
+                </span>
+              </Button>
             </Card>
           )}
           {apartments.length > 0 && filtered.length === 0 && (
@@ -231,7 +260,7 @@ export default function Apartments() {
               Nenhum resultado para "{search}".
             </Card>
           )}
-          {filtered.map((ap) => (
+          {paginated.map((ap) => (
             <Card key={ap.id} className="p-4 flex flex-col">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900">{ap.name}</h3>
@@ -271,6 +300,22 @@ export default function Apartments() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {filtered.length > perPage && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-gray-500">
+            {filtered.length} imóveis · página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              Anterior
+            </Button>
+            <Button variant="outline" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              Próxima
+            </Button>
+          </div>
         </div>
       )}
 
@@ -441,6 +486,46 @@ export default function Apartments() {
                   <Plus size={16} /> Adicionar
                 </Button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar exclusão de apartamento */}
+      {confirmApartment && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">Excluir apartamento?</h3>
+            <p className="text-sm text-gray-600 mt-2">
+              Tem certeza que deseja excluir <strong>{confirmApartment.name}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmApartment(null)}>
+                Cancelar
+              </Button>
+              <Button variant="danger" onClick={confirmDeleteApartment}>
+                Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar remoção de item do checklist */}
+      {confirmChecklistItem && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">Remover item?</h3>
+            <p className="text-sm text-gray-600 mt-2">
+              Remover <strong>"{confirmChecklistItem.item_name}"</strong> do checklist?
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmChecklistItem(null)}>
+                Cancelar
+              </Button>
+              <Button variant="danger" onClick={confirmRemoveChecklistItem}>
+                Remover
+              </Button>
             </div>
           </div>
         </div>
