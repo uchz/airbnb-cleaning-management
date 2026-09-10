@@ -7,15 +7,29 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
-import { formatTime, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
+import { formatTime, taskStatusColors, taskTypeColors } from '../../utils'
 import { MapPin, Clock, Play, CheckCircle2, CalendarDays, Zap, Copy, Check } from 'lucide-react'
-
-const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
 export default function MySchedule() {
   const { user } = useAuth()
   const { t, formatDate } = useI18n()
   const navigate = useNavigate()
+  const WEEK_DAY_LABELS = {
+    6: t('schedules.weekDayLabels.sat'),
+    0: t('schedules.weekDayLabels.sun'),
+    1: t('schedules.weekDayLabels.mon'),
+    2: t('schedules.weekDayLabels.tue'),
+    3: t('schedules.weekDayLabels.wed'),
+    4: t('schedules.weekDayLabels.thu'),
+    5: t('schedules.weekDayLabels.fri'),
+  }
+  const typeLabels = { full_day: t('schedules.fullDay'), half_day: t('schedules.halfDay') }
+  const statusLabels = {
+    pending: t('schedules.statusPending'),
+    in_progress: t('schedules.statusInProgress'),
+    completed: t('schedules.statusCompleted'),
+    cancelled: t('schedules.statusCancelled'),
+  }
   const [schedule, setSchedule] = useState(null)
   const [adhocTasks, setAdhocTasks] = useState([])
   const [feedUrl, setFeedUrl] = useState('')
@@ -82,6 +96,7 @@ export default function MySchedule() {
         </div>
         <p className="text-gray-600 font-medium mb-1">{t('mySchedule.noSchedule')}</p>
         <p className="text-sm text-gray-400">{t('mySchedule.noScheduleHint')}</p>
+        <p className="text-xs text-gray-400 mt-3">Organização: <strong>{user?.organization_name || '—'}</strong></p>
       </div>
     )
   }
@@ -165,7 +180,7 @@ export default function MySchedule() {
                   >
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-semibold text-gray-900 text-sm">{task.apartment_name}</p>
-                      <Badge color={taskTypeColors[task.task_type]}>{taskTypeLabels[task.task_type]}</Badge>
+                      <Badge color={taskTypeColors[task.task_type]}>{typeLabels[task.task_type] || task.task_type}</Badge>
                     </div>
                     <p className="text-xs text-gray-600 flex items-center gap-1 mb-1">
                       <MapPin size={12} /> {task.apartment_address}
@@ -174,7 +189,7 @@ export default function MySchedule() {
                       <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Clock size={12} /> {formatTime(task.scheduled_time)}
                       </span>
-                      <Badge color={taskStatusColors[task.status]}>{taskStatusLabels[task.status]}</Badge>
+                      <Badge color={taskStatusColors[task.status]}>{statusLabels[task.status] || task.status}</Badge>
                     </div>
 
                     <div className="mt-3">
@@ -218,7 +233,7 @@ export default function MySchedule() {
               <Card key={task.id} className="p-4 border-l-4 border-amber-400">
                 <div className="flex justify-between items-start mb-1">
                   <p className="font-semibold text-gray-900 text-sm">{task.apartment_name}</p>
-                  <Badge color={taskTypeColors[task.task_type]}>{taskTypeLabels[task.task_type]}</Badge>
+                  <Badge color={taskTypeColors[task.task_type]}>{typeLabels[task.task_type] || task.task_type}</Badge>
                 </div>
                 <p className="text-xs text-gray-600 flex items-center gap-1 mb-1">
                   <MapPin size={12} /> {task.apartment_address}
@@ -227,7 +242,7 @@ export default function MySchedule() {
                   <span className="text-xs text-gray-500 flex items-center gap-1">
                     <Clock size={12} /> {formatDate(task.scheduled_date)} · {formatTime(task.scheduled_time)}
                   </span>
-                  <Badge color={taskStatusColors[task.status]}>{taskStatusLabels[task.status]}</Badge>
+                  <Badge color={taskStatusColors[task.status]}>{statusLabels[task.status] || task.status}</Badge>
                 </div>
                 <div className="mt-3">
                   {task.status === 'completed' ? (
