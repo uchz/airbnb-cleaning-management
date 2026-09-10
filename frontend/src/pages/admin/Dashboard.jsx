@@ -1,9 +1,10 @@
 ﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useI18n } from '../../contexts/I18nContext'
 import { getTasks, getEmployees, getApartments, getSchedules, getGeneralReport, getDashboardData } from '../../services'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
-import { taskStatusLabels, taskStatusColors, getWeekStart, formatDate } from '../../utils'
+import { taskStatusLabels, taskStatusColors, getWeekStart } from '../../utils'
 import { Building2, Users, CalendarDays, CheckCircle2, Clock4, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import {
@@ -33,6 +34,7 @@ const STATUS_NAMES = {
 }
 
 export default function AdminDashboard() {
+  const { t, formatDate } = useI18n()
   const [stats, setStats] = useState(null)
   const [recentTasks, setRecentTasks] = useState([])
   const [dashboard, setDashboard] = useState(null)
@@ -99,28 +101,28 @@ export default function AdminDashboard() {
 
   const gradientCards = [
     {
-      label: 'Funcionários',
+      label: t('dashboard.employees'),
       value: stats.employees,
       icon: Users,
       grad: 'from-sky-500 to-cyan-400',
       shadow: 'shadow-sky-500/30',
     },
     {
-      label: 'Apartamentos',
+      label: t('dashboard.apartments'),
       value: stats.apartments,
       icon: Building2,
       grad: 'from-brand-500 to-violet-500',
       shadow: 'shadow-brand-500/30',
     },
     {
-      label: 'Escalas',
+      label: t('dashboard.schedules'),
       value: stats.schedules,
       icon: CalendarDays,
       grad: 'from-amber-500 to-orange-400',
       shadow: 'shadow-amber-500/30',
     },
       {
-        label: 'Conclusão no período',
+        label: t('dashboard.completionInPeriod'),
         value: `${stats.completionRate || 0}%`,
         icon: TrendingUp,
         grad: 'from-emerald-500 to-teal-400',
@@ -133,9 +135,9 @@ export default function AdminDashboard() {
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Painel de <span className="text-gradient">Controle</span>
+            {t('dashboard.title').split(' ')[0]} <span className="text-gradient">{t('dashboard.title').split(' ').slice(1).join(' ')}</span>
           </h1>
-          <p className="text-gray-500 mt-1">Visão geral da operação no período</p>
+          <p className="text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -144,7 +146,7 @@ export default function AdminDashboard() {
             onChange={(e) => setStartDate(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
           />
-          <span className="text-gray-400 text-sm">até</span>
+          <span className="text-gray-400 text-sm">{t('common.to')}</span>
           <input
             type="date"
             value={endDate}
@@ -155,7 +157,7 @@ export default function AdminDashboard() {
             onClick={load}
             className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700"
           >
-            Filtrar
+            {t('common.filter')}
           </button>
         </div>
       </div>
@@ -189,12 +191,12 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
               <Clock4 size={20} />
             </div>
-            <p className="font-semibold text-gray-700">Tarefas no período</p>
+            <p className="font-semibold text-gray-700">{t('dashboard.tasksInPeriod')}</p>
           </div>
           <p className="text-3xl font-extrabold text-gray-900">{stats.totalTasks}</p>
           <div className="flex gap-2 mt-3">
-            <Badge color="yellow">{stats.pending} pendentes</Badge>
-            <Badge color="blue">{stats.inProgress} em andamento</Badge>
+            <Badge color="yellow">{stats.pending} {t('dashboard.pending')}</Badge>
+            <Badge color="blue">{stats.inProgress} {t('dashboard.inProgress')}</Badge>
           </div>
         </Card>
 
@@ -203,7 +205,7 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 size={20} />
             </div>
-            <p className="font-semibold text-gray-700">Limpezas concluídas</p>
+            <p className="font-semibold text-gray-700">{t('dashboard.completedCleanings')}</p>
           </div>
           <p className="text-3xl font-extrabold text-emerald-600">{stats.completed}</p>
           <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -214,8 +216,8 @@ export default function AdminDashboard() {
           </div>
           <p className="text-xs text-gray-500 mt-2">
             {stats.totalTasks > 0
-              ? `${((stats.completed / stats.totalTasks) * 100).toFixed(0)}% do período concluído`
-              : 'Sem tarefas ainda'}
+              ? t('dashboard.ofPeriodCompleted', { percent: ((stats.completed / stats.totalTasks) * 100).toFixed(0) })
+              : t('dashboard.noTasksYet')}
           </p>
         </Card>
 
@@ -224,10 +226,10 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <TrendingUp size={20} />
             </div>
-            <p className="font-semibold text-gray-700">Taxa de conclusão</p>
+            <p className="font-semibold text-gray-700">{t('dashboard.completionRate')}</p>
           </div>
           <p className="text-3xl font-extrabold text-amber-600">{stats.completionRate || 0}%</p>
-          <p className="text-xs text-gray-500 mt-3">Média geral do período selecionado</p>
+          <p className="text-xs text-gray-500 mt-3">{t('dashboard.avgPeriod')}</p>
         </Card>
       </div>
 
@@ -241,8 +243,8 @@ export default function AdminDashboard() {
                 <BarChart3 size={18} />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">Tarefas por dia</h2>
-                <p className="text-xs text-gray-500">Total vs concluídas no período</p>
+                <h2 className="font-bold text-gray-900">{t('dashboard.tasksByDay')}</h2>
+                <p className="text-xs text-gray-500">{t('dashboard.totalVsCompleted')}</p>
               </div>
             </div>
             {dashboard.tasks_by_day.length === 0 ? (
@@ -274,8 +276,8 @@ export default function AdminDashboard() {
                 <PieChartIcon size={18} />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">Status das tarefas</h2>
-                <p className="text-xs text-gray-500">Distribuição do período</p>
+                <h2 className="font-bold text-gray-900">{t('dashboard.statusTitle')}</h2>
+                <p className="text-xs text-gray-500">{t('dashboard.statusSubtitle')}</p>
               </div>
             </div>
             {dashboard.tasks_by_status.filter((s) => s.count > 0).length === 0 ? (
@@ -315,8 +317,8 @@ export default function AdminDashboard() {
                 <Building2 size={18} />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">Apartamentos mais atendidos</h2>
-                <p className="text-xs text-gray-500">Número de limpezas no período</p>
+                <h2 className="font-bold text-gray-900">{t('dashboard.apartmentsMost')}</h2>
+                <p className="text-xs text-gray-500">{t('dashboard.cleaningsInPeriod')}</p>
               </div>
             </div>
             {dashboard.tasks_by_apartment.length === 0 ? (
@@ -348,8 +350,8 @@ export default function AdminDashboard() {
                 <Users size={18} />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">Diárias por funcionário</h2>
-                <p className="text-xs text-gray-500">Inteiras vs meias no período</p>
+                <h2 className="font-bold text-gray-900">{t('dashboard.diariasByEmployee')}</h2>
+                <p className="text-xs text-gray-500">{t('dashboard.fullVsHalf')}</p>
               </div>
             </div>
             {dashboard.employee_diarias.length === 0 ? (
@@ -378,32 +380,32 @@ export default function AdminDashboard() {
       <Card className="overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
           <div>
-            <h2 className="font-bold text-gray-900">Tarefas do período</h2>
-            <p className="text-sm text-gray-500">Acompanhe o andamento das limpezas</p>
+            <h2 className="font-bold text-gray-900">{t('dashboard.recentTitle')}</h2>
+            <p className="text-sm text-gray-500">{t('dashboard.recentSubtitle')}</p>
           </div>
           <Link
             to="/schedules"
             className="text-sm font-semibold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
           >
-            Ver escalas →
+            {t('dashboard.viewSchedules')}
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-gray-500 text-xs uppercase tracking-wide">
-                <th className="px-5 py-3 font-semibold">Data</th>
-                <th className="px-5 py-3 font-semibold">Apartamento</th>
-                <th className="px-5 py-3 font-semibold">Funcionário</th>
-                <th className="px-5 py-3 font-semibold">Horário</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">{t('dashboard.colDate')}</th>
+                <th className="px-5 py-3 font-semibold">{t('dashboard.colApartment')}</th>
+                <th className="px-5 py-3 font-semibold">{t('dashboard.colEmployee')}</th>
+                <th className="px-5 py-3 font-semibold">{t('dashboard.colTime')}</th>
+                <th className="px-5 py-3 font-semibold">{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
               {recentTasks.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-gray-500">
-                    Nenhuma tarefa neste período. Ajuste as datas ou crie a escala para começar.
+                    {t('dashboard.noTasksPeriod')}
                   </td>
                 </tr>
               )}
