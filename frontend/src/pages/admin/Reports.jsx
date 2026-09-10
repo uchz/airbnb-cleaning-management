@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
 import Badge from '../../components/ui/Badge'
 import { format } from 'date-fns'
-import { getWeekStart, formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels } from '../../utils'
+import { getWeekStart, taskStatusColors } from '../../utils'
 import { Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react'
 
 export default function Reports() {
@@ -22,12 +22,32 @@ export default function Reports() {
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState('')
 
+  const typeLabels = { full_day: t('schedules.fullDay'), half_day: t('schedules.halfDay') }
+  const statusLabels = {
+    pending: t('schedules.statusPending'),
+    in_progress: t('schedules.statusInProgress'),
+    completed: t('schedules.statusCompleted'),
+    cancelled: t('schedules.statusCancelled'),
+  }
+
   useEffect(() => {
     getEmployees().then((r) => setEmployees(r.data))
   }, [])
 
+  const applyPreset = (days) => {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - (days - 1))
+    setStartDate(format(start, 'yyyy-MM-dd'))
+    setEndDate(format(end, 'yyyy-MM-dd'))
+  }
+
   const runReport = async (e) => {
     e.preventDefault()
+    if (endDate < startDate) {
+      alert(t('schedules.errorEndBeforeStart'))
+      return
+    }
     setLoading(true)
     try {
       const [gen, emp] = await Promise.all([
@@ -48,7 +68,7 @@ export default function Reports() {
     if (!report) return
     const rows = [
       [t('reports.employee'), report.employee_name],
-      [t('common.date'), `${formatDate(report.period_start)} a ${formatDate(report.period_end)}`],
+      [t('common.date'), `${formatDateI18n(report.period_start)} ${t('common.to')} ${formatDateI18n(report.period_end)}`],
       [t('reports.daysWorked'), report.total_days_worked],
       [t('reports.fullDays'), report.full_day_count],
       [t('reports.halfDays'), report.half_day_count],
@@ -60,8 +80,8 @@ export default function Reports() {
       ...report.tasks.map((t) => [
         t.scheduled_date,
         t.apartment_name,
-        taskTypeLabels[t.task_type],
-        taskStatusLabels[t.status],
+        typeLabels[t.task_type] || t.task_type,
+        statusLabels[t.status] || t.status,
       ]),
     ]
     const csv = rows
@@ -98,6 +118,22 @@ export default function Reports() {
 
       {/* Filtros */}
       <Card className="p-4 mb-6">
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[
+            [7, '7d'],
+            [15, '15d'],
+            [30, '30d'],
+          ].map(([d, label]) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => applyPreset(d)}
+              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-700"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <form onSubmit={runReport} className="grid md:grid-cols-4 gap-4">
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.employee')}</label>
@@ -137,6 +173,13 @@ export default function Reports() {
           </div>
         </form>
       </Card>
+
+      {!general && !report && !loading && (
+        <Card className="p-10 text-center">
+          <p className="font-semibold text-gray-900">{t('common.noData')}</p>
+          <p className="text-sm text-gray-500 mt-1">{t('reports.noTasksPeriod')}</p>
+        </Card>
+      )}
 
       {/* Relatório geral */}
       {general && (
@@ -191,6 +234,13 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody>
+                {general.employees.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                      {t('reports.noTasksPeriod')}
+                    </td>
+                  </tr>
+                )}
                 {general.employees.map((emp) => (
                   <tr key={emp.employee_id} className="border-t border-gray-100">
                     <td className="px-4 py-2 font-medium text-gray-800">{emp.employee_name}</td>
@@ -285,13 +335,13 @@ export default function Reports() {
                     </td>
                   </tr>
                 )}
-                {report.tasks.map((t) => (
-                  <tr key={t.task_id} className="border-t border-gray-100">
-                    <td className="px-4 py-2">{formatDate(t.scheduled_date)}</td>
-                    <td className="px-4 py-2 font-medium text-gray-800">{t.apartment_name}</td>
-                    <td className="px-4 py-2">{taskTypeLabels[t.task_type]}</td>
+                {report.tasks.map((tt) => (
+                  <tr key={tt.task_id} className="border-t border-gray-100">
+                    <td className="px-4 py-2">{formatDateI18n(tt.scheduled_date)}</td>
+                    <td className="px-4 py-2 font-medium text-gray-800">{tt.apartment_name}</td>
+                    <td className="px-4 py-2">{typeLabels[tt.task_type] || tt.task_type}</td>
                     <td className="px-4 py-2">
-                      <Badge color={taskStatusColors[t.status]}>{taskStatusLabels[t.status]}</Badge>
+                      <Badge color={taskStatusColors[tt.status]}>{statusLabels[tt.status] || tt.status}</Badge>
                     </td>
                   </tr>
                 ))}
