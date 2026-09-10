@@ -280,7 +280,7 @@ export default {
     noTasks: 'Sem tarefas',
     createFirst: 'Criar a primeira escala',
     noScheduleSelected: 'Nenhuma escala selecionada.',
-    weeks: 'Semanas',
+    weeks: 'Períodos',
     noSchedules: 'Nenhuma escala criada.',
     active: 'Ativa',
     addTaskTitle: 'Adicionar tarefa',

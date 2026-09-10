@@ -56,7 +56,14 @@ export default function Schedules() {
   const [confirmDeleteSchedule, setConfirmDeleteSchedule] = useState(null)
   const [confirmDuplicate, setConfirmDuplicate] = useState(false)
   const [confirmDeleteAdhoc, setConfirmDeleteAdhoc] = useState(null)
+  const [scheduleSearch, setScheduleSearch] = useState('')
   const [error, setError] = useState('')
+
+  const filteredSchedules = schedules.filter((sc) => {
+    const q = scheduleSearch.trim().toLowerCase()
+    if (!q) return true
+    return formatDate(sc.start_date).toLowerCase().includes(q) || formatDate(sc.end_date).toLowerCase().includes(q)
+  })
 
   const [taskForm, setTaskForm] = useState({
     employee_id: '',
@@ -290,14 +297,29 @@ export default function Schedules() {
         {/* Lista de escalas */}
         <div className="lg:w-64 shrink-0">
           <Card className="overflow-hidden">
-            <div className="p-3 border-b border-gray-200 font-semibold text-gray-900 text-sm">
-              {t('schedules.weeks')}
+            <div className="p-3 border-b border-gray-200 font-semibold text-gray-900 text-sm flex justify-between items-center">
+              <span>{t('schedules.weeks')}</span>
+              <span className="text-xs font-normal text-gray-500">{schedules.length}</span>
             </div>
-            <ul className="divide-y divide-gray-100">
+            <div className="p-2 border-b border-gray-100">
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={scheduleSearch}
+                  onChange={(e) => setScheduleSearch(e.target.value)}
+                  placeholder={t('common.search')}
+                  className="w-full pl-8 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-brand-200"
+                />
+              </div>
+            </div>
+            <ul className="divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
               {schedules.length === 0 && (
                 <li className="p-4 text-sm text-gray-500">{t('schedules.noSchedules')}</li>
               )}
-              {schedules.map((s) => (
+              {schedules.length > 0 && filteredSchedules.length === 0 && (
+                <li className="p-4 text-sm text-gray-500">{t('common.noResults', { q: scheduleSearch })}</li>
+              )}
+              {filteredSchedules.map((s) => (
                 <li key={s.id}>
                   <div
                     role="button"

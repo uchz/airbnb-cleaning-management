@@ -280,7 +280,7 @@ export default {
     noTasks: 'No tasks',
     createFirst: 'Create first schedule',
     noScheduleSelected: 'No schedule selected.',
-    weeks: 'Weeks',
+    weeks: 'Periods',
     noSchedules: 'No schedules created.',
     active: 'Active',
     addTaskTitle: 'Add task',

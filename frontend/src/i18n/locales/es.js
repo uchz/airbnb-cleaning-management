@@ -280,7 +280,7 @@ export default {
     noTasks: 'Sin tareas',
     createFirst: 'Crear primer turno',
     noScheduleSelected: 'Ningún turno seleccionado.',
-    weeks: 'Semanas',
+    weeks: 'Períodos',
     noSchedules: 'Ningún turno creado.',
     active: 'Activo',
     addTaskTitle: 'Agregar tarea',
