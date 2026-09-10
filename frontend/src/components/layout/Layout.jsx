@@ -1,14 +1,17 @@
 ﻿import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import { useEffect, useState } from 'react'
 import { getLowStockProducts, changePassword } from '../../services'
 import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound, CreditCard } from 'lucide-react'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import NotificationBell from './NotificationBell'
+import LanguageSwitcher from '../ui/LanguageSwitcher'
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
+  const { t } = useI18n()
   const location = useLocation()
   const isAdmin = user?.role === 'admin'
   const [lowStockCount, setLowStockCount] = useState(0)
@@ -28,18 +31,18 @@ export default function Layout({ children }) {
     e.preventDefault()
     setPwdError('')
     if (pwdForm.next !== pwdForm.confirm) {
-      setPwdError('A confirmação não confere com a nova senha.')
+      setPwdError(t('auth.passwordMismatch'))
       return
     }
     if (pwdForm.next.length < 6) {
-      setPwdError('A nova senha deve ter pelo menos 6 caracteres.')
+      setPwdError(t('auth.passwordMin'))
       return
     }
     try {
       await changePassword(pwdForm.current, pwdForm.next)
       setShowPwdModal(false)
     } catch (err) {
-      setPwdError(err.response?.data?.detail || 'Erro ao trocar senha')
+      setPwdError(err.response?.data?.detail || t('auth.currentIncorrect'))
     }
   }
 
@@ -60,15 +63,15 @@ export default function Layout({ children }) {
 
   const navItems = isAdmin
     ? [
-        { to: '/', label: 'Dashboard', icon: Home },
-        { to: '/apartments', label: 'Apartamentos', icon: Building2 },
-        { to: '/employees', label: 'Funcionários', icon: Users },
-        { to: '/schedules', label: 'Escalas', icon: CalendarDays },
-        { to: '/reports', label: 'Relatórios', icon: BarChart3 },
-        { to: '/products', label: 'Estoque', icon: Package },
-        { to: '/billing', label: 'Plano', icon: CreditCard },
+        { to: '/', label: t('nav.dashboard'), icon: Home },
+        { to: '/apartments', label: t('nav.apartments'), icon: Building2 },
+        { to: '/employees', label: t('nav.employees'), icon: Users },
+        { to: '/schedules', label: t('nav.schedules'), icon: CalendarDays },
+        { to: '/reports', label: t('nav.reports'), icon: BarChart3 },
+        { to: '/products', label: t('nav.stock'), icon: Package },
+        { to: '/billing', label: t('nav.billing'), icon: CreditCard },
       ]
-    : [{ to: '/', label: 'Minha Escala', icon: ClipboardList }]
+    : [{ to: '/', label: t('nav.mySchedule'), icon: ClipboardList }]
 
   const initials = user?.full_name
     ?.split(' ')
@@ -89,7 +92,7 @@ export default function Layout({ children }) {
         {/* Navegação */}
         <nav className="flex-1 px-3 mt-2">
           <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 mb-2">
-            {isAdmin ? 'Gerenciamento' : 'Portal'}
+            {isAdmin ? t('nav.management') : t('nav.portal')}
           </p>
           <ul className="space-y-1">
             {navItems.map((item) => {
@@ -137,18 +140,21 @@ export default function Layout({ children }) {
             <NotificationBell />
             <button
               onClick={openPwdModal}
-              title="Trocar senha"
+              title={t('layout.changePassword')}
               className="p-2 text-gray-400 hover:text-brand-300 hover:bg-white/5 rounded-lg transition-colors"
             >
               <KeyRound size={16} />
             </button>
             <button
               onClick={logout}
-              title="Sair"
+              title={t('layout.logout')}
               className="p-2 text-gray-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors"
             >
               <LogOut size={16} />
             </button>
+          </div>
+          <div className="mt-3 flex justify-center">
+            <LanguageSwitcher variant="dark" />
           </div>
         </div>
       </aside>
@@ -161,23 +167,27 @@ export default function Layout({ children }) {
             <NotificationBell />
             <button
               onClick={openPwdModal}
-              title="Trocar senha"
+              title={t('layout.changePassword')}
               className="p-2 text-gray-400 hover:text-brand-300 rounded-lg"
             >
               <KeyRound size={18} />
             </button>
             <button
               onClick={logout}
+              title={t('layout.logout')}
               className="p-2 text-gray-400 hover:text-rose-400 rounded-lg"
             >
               <LogOut size={18} />
             </button>
           </div>
         </div>
-        <div className="px-4 pb-3 flex items-center gap-2 text-xs text-gray-400">
-          <span className="text-white font-semibold">{user?.full_name}</span>
-          {user?.organization_name && <span className="text-brand-300/80">· {user.organization_name}</span>}
-          {isAdmin && <span className="bg-brand-600/20 text-brand-300 px-2 py-0.5 rounded-full font-medium">Admin</span>}
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="text-white font-semibold">{user?.full_name}</span>
+            {user?.organization_name && <span className="text-brand-300/80">· {user.organization_name}</span>}
+            {isAdmin && <span className="bg-brand-600/20 text-brand-300 px-2 py-0.5 rounded-full font-medium">{t('common.admin')}</span>}
+          </div>
+          <LanguageSwitcher variant="dark" />
         </div>
       </header>
 
@@ -217,26 +227,26 @@ export default function Layout({ children }) {
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                <KeyRound size={18} className="text-brand-600" /> Trocar Senha
+                <KeyRound size={18} className="text-brand-600" /> {t('auth.changePassword')}
               </h2>
-              <p className="text-sm text-gray-500 mb-4">Conta de <strong>{user?.username}</strong></p>
+              <p className="text-sm text-gray-500 mb-4">{t('auth.changePasswordOf', { username: user?.username })}</p>
               <form onSubmit={handlePwdSubmit}>
                 <Input
-                  label="Senha atual"
+                  label={t('auth.currentPassword')}
                   type="password"
                   value={pwdForm.current}
                   onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
                   required
                 />
                 <Input
-                  label="Nova senha (mín. 6 caracteres)"
+                  label={t('auth.newPassword')}
                   type="password"
                   value={pwdForm.next}
                   onChange={(e) => setPwdForm({ ...pwdForm, next: e.target.value })}
                   required
                 />
                 <Input
-                  label="Confirmar nova senha"
+                  label={t('auth.confirmPassword')}
                   type="password"
                   value={pwdForm.confirm}
                   onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
@@ -249,9 +259,9 @@ export default function Layout({ children }) {
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowPwdModal(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Salvar Nova Senha</Button>
+                  <Button type="submit">{t('auth.saveNewPassword')}</Button>
                 </div>
               </form>
             </div>

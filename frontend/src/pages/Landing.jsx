@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
+import LanguageSwitcher from '../components/ui/LanguageSwitcher'
 import { Check, Sparkles, CalendarDays, Video, ClipboardList, Package, BarChart3, Bell, Smartphone, Copy, ArrowRight, ShieldCheck, Zap, Clock } from 'lucide-react'
 
 export default function Landing() {
   const { user } = useAuth()
+  const { t } = useI18n()
   const cta = user ? '/schedules' : '/signup'
 
   return (
@@ -13,9 +16,10 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <img src="/logo.svg" alt="Verus Sweeply" className="h-7 w-auto" />
           <div className="flex items-center gap-2">
-            <Link to="/login" className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900">Entrar</Link>
+            <LanguageSwitcher />
+            <Link to="/login" className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900">{t('auth.login')}</Link>
             <Link to={cta} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 text-white text-sm font-bold shadow-lg shadow-brand-600/25 hover:from-brand-700 hover:to-violet-700">
-              Criar conta grátis
+              {t('landing.ctaFree')}
             </Link>
           </div>
         </div>
@@ -30,28 +34,28 @@ export default function Landing() {
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-semibold text-slate-700 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Novo: Escalas por período + diárias avulsas
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t('landing.badge')}
               </div>
               <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.05]">
-                Da limpeza <br />
-                ao check-in, <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-violet-600">sem ruído.</span>
+                {t('landing.heroTitle1')} <br />
+                {t('landing.heroTitle2')} <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-violet-600">{t('landing.heroTitle3')}</span>
               </h1>
               <p className="mt-4 text-lg text-slate-600 leading-relaxed">
-                Organização que se vê. Hospedagem que se sente. Verus Sweeply orquestra <strong>8, 20 ou 50 diaristas</strong> por demanda — sem planilha, sem grupo lotado.
+                {t('landing.heroSubtitle')}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link to={cta} className="px-6 py-3 rounded-xl bg-slate-950 text-white font-bold hover:bg-slate-900 inline-flex items-center gap-2">
-                  Começar grátis <ArrowRight size={16} />
+                  {t('landing.ctaFree')} <ArrowRight size={16} />
                 </Link>
                 <Link to="/login" className="px-6 py-3 rounded-xl bg-white border border-gray-200 font-semibold hover:bg-gray-50">
-                  Ver demonstração
+                  {t('landing.ctaDemo')}
                 </Link>
               </div>
-              <p className="mt-3 text-xs text-slate-500">Teste com: <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">admin / admin123</span> • PWA instalável • Vídeos com prova</p>
+              <p className="mt-3 text-xs text-slate-500">{t('landing.demoHint')} <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">admin / admin123</span> • PWA instalável • Vídeos com prova</p>
               <div className="mt-6 flex items-center gap-6 text-sm text-slate-600">
-                <span className="flex items-center gap-2"><ShieldCheck size={16} className="text-emerald-600" /> Sem cartão no free</span>
-                <span className="flex items-center gap-2"><Clock size={16} className="text-brand-600" /> Setup em 3 min</span>
+                <span className="flex items-center gap-2"><ShieldCheck size={16} className="text-emerald-600" /> {t('landing.noCard')}</span>
+                <span className="flex items-center gap-2"><Clock size={16} className="text-brand-600" /> {t('landing.setupTime')}</span>
               </div>
             </div>
             <div className="relative">
@@ -94,12 +98,12 @@ export default function Landing() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <div className="grid md:grid-cols-3 gap-4">
           {[
-            ['Planilha que quebra', ' datas fora da semana, troca de funcionária na mão, sem histórico.'],
-            ['Grupo lotado', '8 diaristas perguntando “onde vou amanhã?” e você respondendo uma a uma.'],
-            ['Sem prova', 'hóspede reclama, você não tem vídeo do antes/depois.'],
-          ].map(([t, d]) => (
-            <div key={t} className="rounded-2xl border bg-white p-5">
-              <p className="font-bold text-slate-900">{t}</p><p className="text-sm text-slate-600 mt-1">{d}</p>
+            [t('landing.pain1t'), t('landing.pain1d')],
+            [t('landing.pain2t'), t('landing.pain2d')],
+            [t('landing.pain3t'), t('landing.pain3d')],
+          ].map(([t1, d]) => (
+            <div key={t1} className="rounded-2xl border bg-white p-5">
+              <p className="font-bold text-slate-900">{t1}</p><p className="text-sm text-slate-600 mt-1">{d}</p>
             </div>
           ))}
         </div>
@@ -108,13 +112,13 @@ export default function Landing() {
       {/* Como funciona */}
       <section className="bg-slate-950 text-white py-14">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl sm:text-3xl font-extrabold">Como funciona na prática</h2>
-          <p className="text-slate-400 mt-1">Do cadastro ao check-in, em 3 passos. Sem treinamento.</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold">{t('landing.howTitle')}</h2>
+          <p className="text-slate-400 mt-1">{t('landing.howSubtitle')}</p>
           <div className="grid md:grid-cols-3 gap-4 mt-8">
             {[
-              { n: '01', t: 'Cadastre aptos', d: 'Endereço, tempo estimado e checklist por unidade.' },
-              { n: '02', t: 'Monte a escala por período', d: 'Escolha X→Y (1 dia a semanas) ou crie diária avulsa pra free-lancer.' },
-              { n: '03', t: 'Acompanhe com prova', d: 'Check-in/out com vídeo, sino de notificações e relatório com diárias.' },
+              { n: '01', t: t('landing.step1t'), d: t('landing.step1d') },
+              { n: '02', t: t('landing.step2t'), d: t('landing.step2d') },
+              { n: '03', t: t('landing.step3t'), d: t('landing.step3d') },
             ].map((s) => (
               <div key={s.n} className="rounded-2xl bg-white/5 border border-white/10 p-6">
                 <p className="text-4xl font-extrabold text-white/20">{s.n}</p>
@@ -127,21 +131,21 @@ export default function Landing() {
 
       {/* Features */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        <h3 className="text-xl font-extrabold">Tudo que você precisa — nada que te prende</h3>
+        <h3 className="text-xl font-extrabold">{t('landing.featuresTitle')}</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {[
-            [CalendarDays, 'Escala por período', 'Defina qualquer intervalo, não só semana.'],
-            [Zap, 'Diárias avulsas', 'Tarefa sem escala pra demanda pontual.'],
-            [Copy, 'Duplicar escala', 'Replica período + tarefas em 1 clique.'],
-            [Video, 'Vídeo antes/depois', 'Check-in e check-out com prova.'],
-            [ClipboardList, 'Checklist por apto', 'Itens que a diarista marca na hora.'],
-            [Bell, 'Notificações', 'Nova tarefa → funcionária, conclusão → admin.'],
-            [BarChart3, 'Relatórios & PDF/XLSX', 'Diárias por dia (regra correta) + export.'],
-            [Package, 'Estoque', 'Alerta de produto acabando.'],
-            [Smartphone, 'PWA + Google Calendar', 'Instala no celular e assina o feed .ics.'],
-          ].map(([Icon, t, d]) => (
-            <div key={t} className="rounded-2xl border p-5 bg-white">
-              <Icon size={18} className="text-brand-600" /><p className="font-bold mt-2">{t}</p><p className="text-sm text-slate-600 mt-1">{d}</p>
+            [CalendarDays, t('landing.f1t'), t('landing.f1d')],
+            [Zap, t('landing.f2t'), t('landing.f2d')],
+            [Copy, t('landing.f3t'), t('landing.f3d')],
+            [Video, t('landing.f4t'), t('landing.f4d')],
+            [ClipboardList, t('landing.f5t'), t('landing.f5d')],
+            [Bell, t('landing.f6t'), t('landing.f6d')],
+            [BarChart3, t('landing.f7t'), t('landing.f7d')],
+            [Package, t('landing.f8t'), t('landing.f8d')],
+            [Smartphone, t('landing.f9t'), t('landing.f9d')],
+          ].map(([Icon, t1, d]) => (
+            <div key={t1} className="rounded-2xl border p-5 bg-white">
+              <Icon size={18} className="text-brand-600" /><p className="font-bold mt-2">{t1}</p><p className="text-sm text-slate-600 mt-1">{d}</p>
             </div>
           ))}
         </div>
@@ -150,13 +154,13 @@ export default function Landing() {
       {/* Preços */}
       <section className="bg-gray-50 border-y py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h3 className="text-xl font-extrabold">Planos por apartamento — simples como deve ser</h3>
-          <p className="text-sm text-slate-500">Comece free, escale quando precisar. Cancele quando quiser.</p>
+          <h3 className="text-xl font-extrabold">{t('landing.pricingTitle')}</h3>
+          <p className="text-sm text-slate-500">{t('landing.pricingSubtitle')}</p>
           <div className="grid md:grid-cols-3 gap-4 mt-6">
             {[
-              { n: 'Free', p: 'Grátis', l: 'até 3 aptos', c: 'Começar grátis', to: '/signup', hl: false },
-              { n: 'Basic', p: 'R$ 99/mês', l: 'até 10 aptos', c: 'Assinar Basic', to: '/signup', hl: true },
-              { n: 'Pro', p: 'R$ 199/mês', l: 'ilimitado', c: 'Assinar Pro', to: '/signup', hl: false },
+              { n: t('landing.free'), p: t('landing.freePrice'), l: t('landing.freeLimit'), c: t('landing.startFree'), to: '/signup', hl: false },
+              { n: t('landing.basic'), p: t('landing.basicPrice'), l: t('landing.basicLimit'), c: t('landing.subscribe', { plan: 'Basic' }), to: '/signup', hl: true },
+              { n: t('landing.pro'), p: t('landing.proPrice'), l: t('landing.proLimit'), c: t('landing.subscribe', { plan: 'Pro' }), to: '/signup', hl: false },
             ].map((pl) => (
               <div key={pl.n} className={`rounded-2xl border bg-white p-6 flex flex-col ${pl.hl ? 'ring-2 ring-brand-500 shadow-lg' : ''}`}>
                 <p className="font-extrabold">{pl.n}</p><p className="text-2xl font-extrabold mt-1">{pl.p}</p><p className="text-sm text-slate-500">{pl.l}</p>
@@ -169,13 +173,13 @@ export default function Landing() {
 
       {/* FAQ */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        <h3 className="text-xl font-extrabold">Perguntas frequentes</h3>
+        <h3 className="text-xl font-extrabold">{t('landing.faqTitle')}</h3>
         <div className="mt-6 grid md:grid-cols-2 gap-4">
           {[
-            ['Preciso instalar algo?', 'Não. É PWA: abre no navegador e instala no celular em 1 toque.'],
-            ['E se eu trabalho só com free-lancer?', 'Use “Nova diária” sem criar escala.'],
-            ['Como provo a limpeza?', 'Vídeo de check-in/out fica salvo no histórico do apartamento.'],
-            ['Posso levar meus dados?', 'Sim. Exporte relatórios em PDF/XLSX quando quiser.'],
+            [t('landing.faq1q'), t('landing.faq1a')],
+            [t('landing.faq2q'), t('landing.faq2a')],
+            [t('landing.faq3q'), t('landing.faq3a')],
+            [t('landing.faq4q'), t('landing.faq4a')],
           ].map(([q, a]) => (
             <div key={q} className="rounded-2xl border p-5 bg-white"><p className="font-bold">{q}</p><p className="text-sm text-slate-600 mt-1">{a}</p></div>
           ))}
@@ -186,17 +190,17 @@ export default function Landing() {
       <section className="bg-slate-950 text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <p className="text-xl font-extrabold">Pronto pra virar a chave sem ruído?</p>
-            <p className="text-slate-400 text-sm">Crie sua organização em 30 segundos. Sem cartão no free.</p>
+            <p className="text-xl font-extrabold">{t('landing.finalTitle')}</p>
+            <p className="text-slate-400 text-sm">{t('landing.finalSubtitle')}</p>
           </div>
           <Link to={cta} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-bold inline-flex items-center gap-2">
-            Criar minha conta <ArrowRight size={16} />
+            {t('landing.createAccount')} <ArrowRight size={16} />
           </Link>
         </div>
       </section>
 
       <footer className="py-8 text-center text-xs text-slate-500">
-        Verus Sweeply • Gestão de limpezas e diárias para hospedagens de temporada • Feito para quem gira imóveis, não planilhas.
+        {t('landing.footer')}
       </footer>
     </div>
   )
