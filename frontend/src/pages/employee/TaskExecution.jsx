@@ -6,13 +6,14 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import VideoRecorder from '../../components/ui/VideoRecorder'
-import { formatDate, formatDateTime, formatTime, taskTypeLabels } from '../../utils'
+import { formatDateTime, formatTime } from '../../utils'
 import { MapPin, Clock, ArrowLeft, Video as VideoIcon, CheckCircle2, Loader2, ListChecks } from 'lucide-react'
 
 export default function TaskExecution() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const { t, formatDate } = useI18n()
+  const typeLabels = { full_day: t('schedules.fullDay'), half_day: t('schedules.halfDay') }
   const [task, setTask] = useState(null)
   const [execution, setExecution] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -142,7 +143,7 @@ export default function TaskExecution() {
               <MapPin size={14} /> {task.apartment_address}
             </p>
           </div>
-          <Badge color="yellow">{taskTypeLabels[task.task_type]}</Badge>
+          <Badge color="yellow">{typeLabels[task.task_type] || task.task_type}</Badge>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/90 mt-2 pt-3 border-t border-white/20">
           <span className="flex items-center gap-1.5">

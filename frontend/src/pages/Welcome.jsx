@@ -24,16 +24,17 @@ export default function Welcome() {
       try {
         const [apts, emps] = await Promise.all([getApartments(), getEmployees()])
         if (apts.data.length > 0 && emps.data.length > 1) {
-          // Já tem dados, pular wizard
           navigate('/', { replace: true })
         } else if (apts.data.length > 0) {
           setStep(2)
         }
-      } catch {}
+      } catch (err) {
+        setError(err.response?.data?.detail || t('welcome.errorApartment'))
+      }
       setLoading(false)
     }
     check()
-  }, [navigate])
+  }, [navigate, t])
 
   const handleApartment = async (e) => {
     e.preventDefault()
