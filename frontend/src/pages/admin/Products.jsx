@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Badge from '../../components/ui/Badge'
-import { Plus, Pencil, Trash2, Package, AlertTriangle, Minus, Plus as PlusIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Package, AlertTriangle, Minus, Plus as PlusIcon, Search } from 'lucide-react'
 
 const emptyForm = {
   name: '',
@@ -25,6 +25,10 @@ export default function Products() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [confirmProduct, setConfirmProduct] = useState(null)
+  const [page, setPage] = useState(1)
+  const perPage = 9
 
   const load = async () => {
     try {
@@ -41,6 +45,13 @@ export default function Products() {
     load()
   }, [])
 
+  const filtered = products.filter((p) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return p.name.toLowerCase().includes(q) || (p.observations || '').toLowerCase().includes(q)
+  })
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage)
   const lowStockCount = products.filter((p) => p.is_low_stock).length
 
   const openCreate = () => {
@@ -82,10 +93,15 @@ export default function Products() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm(t('products.deleteConfirm'))) return
+  const handleDelete = (p) => {
+    setConfirmProduct(p)
+  }
+
+  const confirmDelete = async () => {
+    if (!confirmProduct) return
     try {
-      await deleteProduct(id)
+      await deleteProduct(confirmProduct.id)
+      setConfirmProduct(null)
       await load()
     } catch (err) {
       alert(err.response?.data?.detail || t('products.errorDelete'))
@@ -93,7 +109,9 @@ export default function Products() {
   }
 
   const adjustQuantity = async (p, delta) => {
-    const newQty = Math.max(0, p.quantity + delta)
+    // delta respeita unidade: 1 para un/pacote, 0.1 para kg/l etc seria ideal, mas mantemos 1 e 0.5 para granular
+    const step = ['kg', 'l', 'g', 'ml'].includes(p.unit) ? 0.5 : 1
+    const newQty = Math.max(0, Number((p.quantity + delta * step).toFixed(2)))
     try {
       await updateProduct(p.id, { quantity: newQty })
       await load()
@@ -104,18 +122,29 @@ export default function Products() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
             <span className="text-gradient">{t('products.title')}</span>
           </h1>
           <p className="text-sm text-gray-500 mt-1">{t('products.subtitle')}</p>
         </div>
-        <Button onClick={openCreate}>
-          <span className="flex items-center gap-2">
-            <Plus size={16} /> {t('products.newProduct')}
-          </span>
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+              placeholder={`${t('common.search')}...`}
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400"
+            />
+          </div>
+          <Button onClick={openCreate} className="shrink-0">
+            <span className="flex items-center gap-2">
+              <Plus size={16} /> {t('products.newProduct')}
+            </span>
+          </Button>
+        </div>
       </div>
 
       {lowStockCount > 0 && (
@@ -137,11 +166,25 @@ export default function Products() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.length === 0 && (
-            <Card className="p-8 text-center text-gray-500 sm:col-span-2 lg:col-span-3">
-              {t('products.noProducts')}
+            <Card className="p-10 text-center sm:col-span-2 lg:col-span-3">
+              <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 grid place-items-center mx-auto mb-3">
+                <Package size={22} />
+              </div>
+              <p className="font-semibold text-gray-900">{t('products.noProducts')}</p>
+              <p className="text-sm text-gray-500 mt-1">Cadastre itens para controlar reposição.</p>
+              <Button onClick={openCreate} className="mt-4">
+                <span className="flex items-center gap-2">
+                  <Plus size={16} /> {t('products.newProduct')}
+                </span>
+              </Button>
             </Card>
           )}
-          {products.map((p) => (
+          {products.length > 0 && filtered.length === 0 && (
+            <Card className="p-8 text-center text-gray-500 sm:col-span-2 lg:col-span-3">
+              {t('common.noResults', { q: search })}
+            </Card>
+          )}
+          {paginated.map((p) => (
             <Card key={p.id} className={`p-4 flex flex-col ${p.is_low_stock ? 'border-amber-300' : ''}`}>
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -154,7 +197,7 @@ export default function Products() {
                   <button onClick={() => openEdit(p)} className="p-1.5 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg">
                     <Pencil size={15} />
                   </button>
-                  <button onClick={() => handleDelete(p.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                  <button onClick={() => handleDelete(p)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg">
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -198,6 +241,22 @@ export default function Products() {
               )}
             </Card>
           ))}
+        </div>
+      )}
+
+      {filtered.length > perPage && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-gray-500">
+            {filtered.length} {filtered.length === 1 ? 'produto' : 'produtos'} · {t('common.of')} {page} {t('common.of')} {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              {t('common.previous')}
+            </Button>
+            <Button variant="outline" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              {t('common.next')}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -270,6 +329,27 @@ export default function Products() {
                   <Button type="submit">{editing ? t('products.save') : t('products.create')}</Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar exclusão */}
+      {confirmProduct && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('common.delete')}?</h3>
+            <p className="text-sm text-gray-600 mt-2">
+              {t('products.deleteConfirm')}
+            </p>
+            <p className="text-sm font-semibold text-gray-900 mt-1">"{confirmProduct.name}"</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmProduct(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmDelete}>
+                {t('common.delete')}
+              </Button>
             </div>
           </div>
         </div>
