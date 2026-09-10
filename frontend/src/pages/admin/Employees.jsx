@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import PhoneInput from '../../components/ui/PhoneInput'
 import Badge from '../../components/ui/Badge'
-import { Pencil, Trash2, Plus, Phone, User } from 'lucide-react'
+import { Pencil, Trash2, Plus, Phone, User, Search } from 'lucide-react'
 
 const emptyForm = {
   username: '',
@@ -24,6 +24,7 @@ export default function Employees() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   const load = async () => {
     try {
@@ -86,20 +87,37 @@ export default function Employees() {
     }
   }
 
+  const filtered = employees.filter((emp) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return emp.full_name.toLowerCase().includes(q) || emp.username.toLowerCase().includes(q) || (emp.phone || '').includes(q)
+  })
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
             <span className="text-gradient">{t('employees.title')}</span>
           </h1>
           <p className="text-sm text-gray-500 mt-1">{t('employees.subtitle')}</p>
         </div>
-        <Button onClick={openCreate}>
-          <span className="flex items-center gap-2">
-            <Plus size={16} /> {t('employees.new')}
-          </span>
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`${t('common.search')}...`}
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400"
+            />
+          </div>
+          <Button onClick={openCreate} className="shrink-0">
+            <span className="flex items-center gap-2">
+              <Plus size={16} /> {t('employees.new')}
+            </span>
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -111,7 +129,12 @@ export default function Employees() {
               {t('employees.noEmployees')}
             </Card>
           )}
-          {employees.map((emp) => (
+          {employees.length > 0 && filtered.length === 0 && (
+            <Card className="p-8 text-center text-gray-500 md:col-span-2 lg:col-span-3">
+              {t('common.noResults', { q: search })}
+            </Card>
+          )}
+          {filtered.map((emp) => (
             <Card key={emp.id} className="p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
