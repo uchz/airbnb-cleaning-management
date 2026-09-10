@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../../services/api'
+import { getApartments } from '../../services'
 import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -15,20 +16,32 @@ export default function Billing() {
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState('')
   const [error, setError] = useState('')
+  const [apartmentCount, setApartmentCount] = useState(0)
+  const [showConfirmPortal, setShowConfirmPortal] = useState(false)
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false)
 
   const success = searchParams.get('success') === '1'
   const canceled = searchParams.get('canceled') === '1'
   const sessionId = searchParams.get('session_id')
   const [verifying, setVerifying] = useState(false)
 
+  const statusLabel = {
+    active: t('employees.active'),
+    inactive: t('employees.inactive'),
+    canceled: t('employees.inactive'),
+    past_due: 'past_due',
+  }
+
   const load = async () => {
     try {
-      const [p, s] = await Promise.all([
+      const [p, s, apts] = await Promise.all([
         api.get('/billing/plans'),
         api.get('/billing/subscription'),
+        getApartments().catch(() => ({ data: [] })),
       ])
       setPlans(p.data)
       setSub(s.data)
+      setApartmentCount(apts.data?.length || 0)
     } catch (e) {
       setError(e.response?.data?.detail || t('billing.errorLoad') || 'Erro ao carregar planos')
     } finally {
@@ -67,21 +80,21 @@ export default function Billing() {
       window.location.href = res.data.url
     } catch (e) {
       const msg = e.response?.data?.detail || t('billing.errorPortal') || 'Erro ao abrir portal'
-      // Se portal não configurado, oferecer cancelamento direto
       if (msg.includes('Portal do Stripe não configurado')) {
-        if (confirm(t('billing.portalNotConfigured'))) {
-          handleCancel()
-        } else {
-          setError(msg)
-        }
+        setShowConfirmPortal(true)
       } else {
         setError(msg)
       }
     }
   }
 
-  const handleCancel = async () => {
-    if (!confirm(t('billing.cancelConfirm'))) return
+  const handleCancel = () => {
+    setShowConfirmCancel(true)
+  }
+
+  const confirmCancel = async () => {
+    setShowConfirmCancel(false)
+    setShowConfirmPortal(false)
     try {
       await api.post('/billing/cancel')
       await load()
@@ -120,14 +133,26 @@ export default function Billing() {
       {sub && (
         <Card className="p-5 mb-8 bg-gradient-to-r from-slate-50 to-brand-50/50">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-gray-500">{t('billing.currentPlan')}</p>
               <p className="text-xl font-extrabold text-gray-900">
-                {sub.plan_name} <Badge color={sub.subscription_status === 'active' ? 'green' : 'gray'}>{sub.subscription_status}</Badge>
+                {sub.plan_name} <Badge color={sub.subscription_status === 'active' ? 'green' : 'gray'}>{statusLabel[sub.subscription_status] || sub.subscription_status}</Badge>
               </p>
               <p className="text-sm text-gray-600">{t('billing.priceUntil', { price: sub.price_label, max: sub.max_apartments })}</p>
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>{apartmentCount} / {sub.max_apartments} apartamentos</span>
+                  <span>{sub.max_apartments > 0 ? Math.round((apartmentCount / sub.max_apartments) * 100) : 0}%</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${apartmentCount >= sub.max_apartments ? 'bg-amber-500' : 'bg-brand-500'}`}
+                    style={{ width: `${Math.min(100, sub.max_apartments > 0 ? (apartmentCount / sub.max_apartments) * 100 : 0)}%` }}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               {sub.stripe_customer_id && (
                 <Button variant="outline" onClick={handlePortal}>{t('billing.manage')}</Button>
               )}
@@ -153,7 +178,9 @@ export default function Billing() {
                 {isCurrent && <Badge color="green">{t('billing.current')}</Badge>}
               </div>
               <p className="text-2xl font-extrabold text-gray-900">{plan.price_label}</p>
-              <p className="text-sm text-gray-500 mb-4">{t('billing.priceUntil', { price: '', max: plan.max_apartments }).replace(' · ', '') || `até ${plan.max_apartments} apartamentos`}</p>
+              <p className="text-sm text-gray-500 mb-4">
+                {plan.id === 'free' ? t('billing.freeLimit') : plan.id === 'basic' ? t('billing.basicLimit') : t('billing.proLimit')}
+              </p>
               <ul className="text-sm text-gray-600 space-y-1 mb-6 flex-1">
                 <li className="flex gap-2"><Check size={14} className="text-emerald-500 mt-0.5" /> {t('billing.f1')}</li>
                 <li className="flex gap-2"><Check size={14} className="text-emerald-500 mt-0.5" /> {t('billing.f2')}</li>
@@ -174,6 +201,40 @@ export default function Billing() {
       <p className="text-xs text-gray-400 mt-6 text-center">
         {t('billing.paymentStripe')}
       </p>
+
+      {showConfirmPortal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">Portal indisponível</h3>
+            <p className="text-sm text-gray-600 mt-2">{t('billing.portalNotConfigured')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowConfirmPortal(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmCancel}>
+                {t('common.confirm')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmCancel && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('billing.cancelPlan')}?</h3>
+            <p className="text-sm text-gray-600 mt-2">{t('billing.cancelConfirm')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowConfirmCancel(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmCancel}>
+                {t('common.delete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
