@@ -27,6 +27,7 @@ export default function Billing() {
 
   const statusLabel = {
     active: t('employees.active'),
+    trial: 'Trial',
     inactive: t('employees.inactive'),
     canceled: t('employees.inactive'),
     past_due: 'past_due',
@@ -136,9 +137,22 @@ export default function Billing() {
             <div className="flex-1">
               <p className="text-sm text-gray-500">{t('billing.currentPlan')}</p>
               <p className="text-xl font-extrabold text-gray-900">
-                {sub.plan_name} <Badge color={sub.subscription_status === 'active' ? 'green' : 'gray'}>{statusLabel[sub.subscription_status] || sub.subscription_status}</Badge>
+                {sub.plan_name}{' '}
+                <Badge color={sub.subscription_status === 'active' ? 'green' : sub.subscription_status === 'trial' ? 'blue' : 'gray'}>
+                  {statusLabel[sub.subscription_status] || sub.subscription_status}
+                </Badge>
               </p>
-              <p className="text-sm text-gray-600">{t('billing.priceUntil', { price: sub.price_label, max: sub.max_apartments })}</p>
+              <p className="text-sm text-gray-600">{sub.price_label}</p>
+              
+              {/* Trial info */}
+              {sub.subscription_status === 'trial' && sub.trial_days_remaining !== null && (
+                <div className="mt-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 text-sm">
+                  <strong>🎉 Período de teste:</strong> {sub.trial_days_remaining} dias restantes
+                  <br />
+                  <span className="text-xs">Adicione um cartão de crédito antes do término para continuar sem interrupções.</span>
+                </div>
+              )}
+              
               <div className="mt-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>{apartmentCount} / {sub.max_apartments} apartamentos</span>
@@ -156,7 +170,7 @@ export default function Billing() {
               {sub.stripe_customer_id && (
                 <Button variant="outline" onClick={handlePortal}>{t('billing.manage')}</Button>
               )}
-              {sub.plan !== 'free' && sub.subscription_status === 'active' && (
+              {sub.subscription_status === 'active' && (
                 <Button variant="outline" onClick={handleCancel} className="!text-rose-600 !border-rose-200 hover:!bg-rose-50">
                   {t('billing.cancelPlan')}
                 </Button>
@@ -166,36 +180,43 @@ export default function Billing() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {plans.map((plan) => {
           const isCurrent = sub?.plan === plan.id
-          const isFree = plan.id === 'free'
           return (
             <Card key={plan.id} className={`p-6 flex flex-col ${isCurrent ? 'ring-2 ring-brand-500 shadow-lg' : ''}`}>
               <div className="flex items-center gap-2 mb-2">
-                {plan.id === 'pro' ? <Sparkles size={18} className="text-violet-600" /> : plan.id === 'basic' ? <Building2 size={18} className="text-brand-600" /> : <Zap size={18} className="text-amber-500" />}
-                <h3 className="font-extrabold text-gray-900">{plan.name}</h3>
+                {plan.id === 'pro' ? <Sparkles size={20} className="text-violet-600" /> : <Building2 size={20} className="text-brand-600" />}
+                <h3 className="font-extrabold text-xl text-gray-900">{plan.name}</h3>
                 {isCurrent && <Badge color="green">{t('billing.current')}</Badge>}
               </div>
-              <p className="text-2xl font-extrabold text-gray-900">{plan.price_label}</p>
+              <p className="text-3xl font-extrabold text-gray-900 mb-1">{plan.price_label}</p>
               <p className="text-sm text-gray-500 mb-4">
-                {plan.id === 'free' ? t('billing.freeLimit') : plan.id === 'basic' ? t('billing.basicLimit') : t('billing.proLimit')}
+                {plan.id === 'basic' ? 'Ideal para começar' : 'Ilimitado e completo'}
               </p>
-              <ul className="text-sm text-gray-600 space-y-1 mb-6 flex-1">
-                <li className="flex gap-2"><Check size={14} className="text-emerald-500 mt-0.5" /> {t('billing.f1')}</li>
-                <li className="flex gap-2"><Check size={14} className="text-emerald-500 mt-0.5" /> {t('billing.f2')}</li>
-                <li className="flex gap-2"><Check size={14} className="text-emerald-500 mt-0.5" /> {t('billing.f3')}</li>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6 flex-1">
+                {plan.features?.map((feature, idx) => (
+                  <li key={idx} className="flex gap-2">
+                    <Check size={16} className="text-emerald-500 mt-0.5 shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
               </ul>
-              {isFree ? (
-                <Button variant="outline" disabled>{t('billing.freeBtn')}</Button>
-              ) : (
-                <Button onClick={() => handleCheckout(plan.id)} disabled={isCurrent || !!checkoutLoading}>
-                  {checkoutLoading === plan.id ? t('billing.redirecting') : isCurrent ? t('billing.currentPlanBtn') : t('billing.subscribe', { plan: plan.name })}
-                </Button>
-              )}
+              <Button 
+                onClick={() => handleCheckout(plan.id)} 
+                disabled={isCurrent || !!checkoutLoading}
+                variant={plan.id === 'pro' ? 'primary' : 'secondary'}
+              >
+                {checkoutLoading === plan.id ? t('billing.redirecting') : isCurrent ? t('billing.currentPlanBtn') : t('billing.subscribe', { plan: plan.name })}
+              </Button>
             </Card>
           )
         })}
+      </div>
+
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p><strong>🎉 Trial de 7 dias grátis!</strong></p>
+        <p className="mt-1">Novos cadastros iniciam com 7 dias gratuitos do plano Basic. Cartão de crédito necessário no cadastro.</p>
       </div>
 
       <p className="text-xs text-gray-400 mt-6 text-center">

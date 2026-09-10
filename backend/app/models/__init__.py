@@ -8,6 +8,7 @@ from app.models.history import TaskHistory
 from app.models.checklist import ChecklistTemplate, ChecklistItem
 from app.models.product import Product
 from app.models.notification import Notification
+from app.models.access_log import AccessLog
 
 __all__ = [
     "Organization",
@@ -26,4 +27,5 @@ __all__ = [
     "ChecklistItem",
     "Product",
     "Notification",
+    "AccessLog",
 ]

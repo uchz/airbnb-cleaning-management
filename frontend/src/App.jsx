@@ -6,6 +6,9 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Landing from './pages/Landing'
 import Welcome from './pages/Welcome'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
+import ConsentModal from './components/ConsentModal'
 
 // Admin
 import AdminDashboard from './pages/admin/Dashboard'
@@ -19,6 +22,9 @@ import Billing from './pages/admin/Billing'
 // Employee
 import MySchedule from './pages/employee/MySchedule'
 import TaskExecution from './pages/employee/TaskExecution'
+
+// Settings
+import PrivacySettings from './pages/settings/PrivacySettings'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -41,9 +47,14 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ConsentModal />
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          
           <Route path="/welcome" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
 
           <Route path="/" element={<LandingOrApp />} />
@@ -120,6 +131,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TaskExecution />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/settings/privacy"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <PrivacySettings />
                 </Layout>
               </ProtectedRoute>
             }

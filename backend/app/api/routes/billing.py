@@ -9,9 +9,40 @@ from app.core.config import settings
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
 PLANS = {
-    "free": {"name": "Free", "max_apartments": 3, "price_cents": 0, "price_label": "Grátis"},
-    "basic": {"name": "Basic", "max_apartments": 10, "price_cents": 9900, "price_label": "R$ 99/mês"},
-    "pro": {"name": "Pro", "max_apartments": 9999, "price_cents": 19900, "price_label": "R$ 199/mês"},
+    "basic": {
+        "name": "Basic",
+        "max_tasks_monthly": 60,
+        "max_employees": 3,
+        "max_apartments": 5,
+        "price_cents": 8999,
+        "price_brl": 89.99,
+        "price_label": "R$ 89,99/mês",
+        "features": [
+            "Até 60 tarefas/mês",
+            "3 funcionários",
+            "5 apartamentos",
+            "Relatórios básicos",
+            "Suporte por email"
+        ]
+    },
+    "pro": {
+        "name": "Pro",
+        "max_tasks_monthly": 99999,
+        "max_employees": 99999,
+        "max_apartments": 99999,
+        "price_cents": 18999,
+        "price_brl": 189.99,
+        "price_label": "R$ 189,99/mês",
+        "features": [
+            "Tarefas ilimitadas",
+            "Funcionários ilimitados",
+            "Apartamentos ilimitados",
+            "Relatórios avançados + export",
+            "Controle de estoque",
+            "Integração iCalendar",
+            "Suporte prioritário"
+        ]
+    }
 }
 
 def _get_org(db, current_user: User) -> Organization:
@@ -35,15 +66,28 @@ def list_plans(current_user: User = Depends(get_current_user)):
 def get_subscription(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Status da assinatura da organização"""
     org = _get_org(db, current_user)
-    plan = PLANS.get(org.plan or "free", PLANS["free"])
+    plan = PLANS.get(org.plan or "basic", PLANS["basic"])
+    
+    # Calcular dias restantes do trial
+    from datetime import datetime
+    trial_days_remaining = None
+    if org.subscription_status == "trial" and org.trial_ends_at:
+        delta = org.trial_ends_at - datetime.utcnow()
+        trial_days_remaining = max(0, delta.days)
+    
     return {
         "organization_id": org.id,
-        "plan": org.plan or "free",
+        "plan": org.plan or "basic",
         "plan_name": plan["name"],
         "max_apartments": plan["max_apartments"],
+        "max_employees": plan["max_employees"],
+        "max_tasks_monthly": plan["max_tasks_monthly"],
         "price_label": plan["price_label"],
-        "subscription_status": org.subscription_status or "inactive",
+        "subscription_status": org.subscription_status or "trial",
         "stripe_customer_id": bool(org.stripe_customer_id),
+        "trial_ends_at": org.trial_ends_at.isoformat() if org.trial_ends_at else None,
+        "trial_days_remaining": trial_days_remaining,
+        "features": plan["features"]
     }
 
 

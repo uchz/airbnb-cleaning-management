@@ -9,7 +9,7 @@ from app.models.user import User, UserRole
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse, SignupOrgRequest
 from app.schemas.user import Token
 from app.core.security import get_password_hash, create_access_token
-from datetime import timedelta
+from datetime import timedelta, datetime
 from app.core.config import settings
 
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
@@ -74,7 +74,15 @@ def signup_organization(
     if db.query(User).filter(User.username == data.admin_username).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário já cadastrado")
 
-    org = Organization(name=data.org_name, slug=slug)
+    # Criar organização com trial de 7 dias
+    trial_ends = datetime.utcnow() + timedelta(days=7)
+    org = Organization(
+        name=data.org_name,
+        slug=slug,
+        plan="basic",
+        subscription_status="trial",
+        trial_ends_at=trial_ends
+    )
     db.add(org)
     db.flush()
 

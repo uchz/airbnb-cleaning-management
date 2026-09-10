@@ -15,6 +15,7 @@ from app.api.routes import (
     calendar_router,
     organizations_router,
     billing_router,
+    privacy_router,
 )
 
 api_router.include_router(auth_router, prefix="/api")
@@ -29,3 +30,4 @@ api_router.include_router(notifications_router, prefix="/api")
 api_router.include_router(calendar_router, prefix="/api")
 api_router.include_router(organizations_router, prefix="/api")
 api_router.include_router(billing_router, prefix="/api")
+api_router.include_router(privacy_router, prefix="/api/privacy", tags=["privacy"])

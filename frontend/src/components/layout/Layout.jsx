@@ -3,11 +3,12 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useI18n } from '../../contexts/I18nContext'
 import { useEffect, useState } from 'react'
 import { getLowStockProducts, changePassword } from '../../services'
-import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound, CreditCard } from 'lucide-react'
+import { LogOut, Home, Building2, Users, CalendarDays, BarChart3, ClipboardList, Package, Sparkles, KeyRound, CreditCard, Shield } from 'lucide-react'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import NotificationBell from './NotificationBell'
 import LanguageSwitcher from '../ui/LanguageSwitcher'
+import Footer from '../Footer'
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
@@ -138,6 +139,13 @@ export default function Layout({ children }) {
               <p className="text-xs text-gray-500 truncate">@{user?.username}</p>
             </div>
             <NotificationBell />
+            <Link
+              to="/settings/privacy"
+              title="Privacidade"
+              className="p-2 text-gray-400 hover:text-brand-300 hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <Shield size={16} />
+            </Link>
             <button
               onClick={openPwdModal}
               title={t('layout.changePassword')}
@@ -197,6 +205,7 @@ export default function Layout({ children }) {
             {children}
           </div>
         </main>
+        <Footer />
       </div>
 
       {/* Nav mobile */}

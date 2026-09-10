@@ -17,6 +17,7 @@ from app.schemas.execution import (
 )
 from app.core.storage import storage_service
 from app.services.notifications import notify_task_completed
+from app.models.access_log import AccessLog
 import os
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
@@ -46,6 +47,19 @@ def get_execution_by_task(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    
+    # Log de acesso ao vídeo (LGPD) - apenas se admin visualizando vídeo de outro
+    if current_user.role == UserRole.ADMIN and task.employee_id != current_user.id:
+        if execution.checkin_video_url or execution.checkout_video_url:
+            log = AccessLog(
+                user_id=current_user.id,
+                organization_id=org_id,
+                action="VIEW_VIDEO",
+                resource_type="execution",
+                resource_id=str(execution.id)
+            )
+            db.add(log)
+            db.commit()
     
     return execution
 
