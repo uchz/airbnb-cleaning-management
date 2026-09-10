@@ -19,7 +19,7 @@ import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
-import { taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
+import { taskStatusColors, taskTypeColors } from '../../utils'
 import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap, CopyPlus } from 'lucide-react'
 
 export default function Schedules() {
@@ -32,6 +32,13 @@ export default function Schedules() {
     3: t('schedules.weekDayLabels.wed'),
     4: t('schedules.weekDayLabels.thu'),
     5: t('schedules.weekDayLabels.fri'),
+  }
+  const typeLabels = { full_day: t('schedules.fullDay'), half_day: t('schedules.halfDay') }
+  const statusLabelsSched = {
+    pending: t('schedules.statusPending'),
+    in_progress: t('schedules.statusInProgress'),
+    completed: t('schedules.statusCompleted'),
+    cancelled: t('schedules.statusCancelled'),
   }
   const [schedules, setSchedules] = useState([])
   const [selected, setSelected] = useState(null)
@@ -379,7 +386,7 @@ export default function Schedules() {
                                   {task.apartment_name || `Apto #${task.apartment_id}`}
                                 </span>
                                 <Badge color={taskTypeColors[task.task_type]}>
-                                  {taskTypeLabels[task.task_type]}
+                                  {typeLabels[task.task_type] || task.task_type}
                                 </Badge>
                               </div>
                               <div className="mt-1 flex items-center justify-between">
@@ -391,7 +398,7 @@ export default function Schedules() {
                               </div>
                               <div className="mt-1">
                                 <Badge color={taskStatusColors[task.status]}>
-                                  {taskStatusLabels[task.status]}
+                                  {statusLabelsSched[task.status] || task.status}
                                 </Badge>
                               </div>
                             </div>
@@ -427,7 +434,7 @@ export default function Schedules() {
                     </p>
                     <p className="text-xs text-gray-500">
                       {emp?.full_name?.split(' ')[0] || '—'} ·{' '}
-                      <Badge color={taskStatusColors[tt.status]}>{taskStatusLabels[tt.status]}</Badge>
+                      <Badge color={taskStatusColors[tt.status]}>{statusLabelsSched[tt.status] || tt.status}</Badge>
                     </p>
                   </button>
                   <button

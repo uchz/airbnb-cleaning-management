@@ -312,6 +312,10 @@ export default {
     errorDeleteEmployee: 'Error al eliminar empleado',
     inactive: 'Inactivo',
     weekDayLabels: { sat: 'Sáb', sun: 'Dom', mon: 'Lun', tue: 'Mar', wed: 'Mié', thu: 'Jue', fri: 'Vie' },
+    statusPending: 'Pendiente',
+    statusInProgress: 'En curso',
+    statusCompleted: 'Completada',
+    statusCancelled: 'Cancelada',
   },
   mySchedule: {
     title: 'Mi Turno',

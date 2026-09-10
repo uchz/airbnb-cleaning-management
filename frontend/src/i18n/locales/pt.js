@@ -312,6 +312,10 @@ export default {
     errorDeleteEmployee: 'Erro ao excluir funcionário',
     inactive: 'Inativo',
     weekDayLabels: { sat: 'Sáb', sun: 'Dom', mon: 'Seg', tue: 'Ter', wed: 'Qua', thu: 'Qui', fri: 'Sex' },
+    statusPending: 'Pendente',
+    statusInProgress: 'Em andamento',
+    statusCompleted: 'Concluída',
+    statusCancelled: 'Cancelada',
   },
   mySchedule: {
     title: 'Minha Escala',
