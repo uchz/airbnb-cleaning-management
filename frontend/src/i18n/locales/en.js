@@ -247,6 +247,7 @@ export default {
     inactive: 'Inactive',
     noEmployees: 'No employees yet.',
     paymentLabel: 'Payment',
+    deleteConfirm: 'Are you sure you want to delete {name}?',
   },
   schedules: {
     title: 'Schedules',

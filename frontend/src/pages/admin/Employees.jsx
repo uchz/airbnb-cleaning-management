@@ -25,6 +25,13 @@ export default function Employees() {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [confirmEmployee, setConfirmEmployee] = useState(null)
+  const perPage = 9
+
+  useEffect(() => {
+    setPage(1)
+  }, [search])
 
   const load = async () => {
     try {
@@ -77,13 +84,18 @@ export default function Employees() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm(t('schedules.deleteEmployeeConfirm'))) return
+  const handleDelete = (emp) => {
+    setConfirmEmployee(emp)
+  }
+
+  const confirmDelete = async () => {
+    if (!confirmEmployee) return
     try {
-      await deleteUser(id)
+      await deleteUser(confirmEmployee.id)
+      setConfirmEmployee(null)
       await load()
     } catch (err) {
-      alert(err.response?.data?.detail || t('schedules.errorDeleteEmployee'))
+      alert(err.response?.data?.detail || t('common.delete'))
     }
   }
 
@@ -92,6 +104,8 @@ export default function Employees() {
     if (!q) return true
     return emp.full_name.toLowerCase().includes(q) || emp.username.toLowerCase().includes(q) || (emp.phone || '').includes(q)
   })
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage)
 
   return (
     <div>
@@ -134,7 +148,7 @@ export default function Employees() {
               {t('common.noResults', { q: search })}
             </Card>
           )}
-          {filtered.map((emp) => (
+          {paginated.map((emp) => (
             <Card key={emp.id} className="p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
@@ -156,7 +170,7 @@ export default function Employees() {
                     <Pencil size={16} />
                   </button>
                   <button
-                    onClick={() => handleDelete(emp.id)}
+                    onClick={() => handleDelete(emp)}
                     className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <Trash2 size={16} />
@@ -180,6 +194,22 @@ export default function Employees() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {filtered.length > perPage && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-gray-500">
+            {filtered.length} {filtered.length === 1 ? 'funcionário' : 'funcionários'} · {t('common.of')} {page} {t('common.of')} {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              {t('common.previous')}
+            </Button>
+            <Button variant="outline" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              {t('common.next')}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -236,6 +266,26 @@ export default function Employees() {
                   <Button type="submit">{editing ? t('common.save') : t('common.create')}</Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar exclusão */}
+      {confirmEmployee && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('common.delete')}?</h3>
+            <p className="text-sm text-gray-600 mt-2">
+              {t('employees.deleteConfirm', { name: confirmEmployee.full_name })}
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmEmployee(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmDelete}>
+                {t('common.delete')}
+              </Button>
             </div>
           </div>
         </div>

@@ -247,6 +247,7 @@ export default {
     inactive: 'Inativo',
     noEmployees: 'Nenhum funcionário cadastrado ainda.',
     paymentLabel: 'Pagamento',
+    deleteConfirm: 'Tem certeza que deseja excluir {name}?',
   },
   schedules: {
     title: 'Escalas',

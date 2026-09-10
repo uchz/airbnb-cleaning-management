@@ -247,6 +247,7 @@ export default {
     inactive: 'Inactivo',
     noEmployees: 'Aún sin empleados.',
     paymentLabel: 'Pago',
+    deleteConfirm: '¿Seguro que quieres eliminar {name}?',
   },
   schedules: {
     title: 'Turnos',
