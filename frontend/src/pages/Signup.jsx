@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import LanguageSwitcher from '../components/ui/LanguageSwitcher'
 import { Building2, User, Lock, Phone, Sparkles } from 'lucide-react'
 import api from '../services/api'
 
@@ -15,6 +17,7 @@ function slugify(text) {
 }
 
 export default function Signup() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { login } = useAuth()
   const [form, setForm] = useState({
@@ -69,6 +72,9 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-950 flex items-center justify-center px-4 py-8">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher variant="dark" />
+      </div>
       <div className="absolute inset-0">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-600/30 blur-3xl"></div>
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-violet-600/30 blur-3xl"></div>
@@ -81,7 +87,7 @@ export default function Signup() {
             <img src="/logo-light.svg" alt="Verus Sweeply" className="h-12 sm:h-14 w-auto max-w-full mb-3" />
             <p className="text-sm text-gray-400 flex items-center gap-1.5">
               <Sparkles size={14} className="text-brand-400" />
-              Crie sua organização e comece em minutos
+              {t('auth.signupSubtitle')}
             </p>
           </div>
 
@@ -89,10 +95,10 @@ export default function Signup() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <Input
-                  label="Nome da organização"
+                  label={t('auth.orgName')}
                   value={form.org_name}
                   onChange={(e) => handleOrgNameChange(e.target.value)}
-                  placeholder="Ex: Limpezas Litoral"
+                  placeholder={t('auth.orgNamePlaceholder')}
                   required
                   icon={<Building2 size={16} />}
                   className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
@@ -100,63 +106,63 @@ export default function Signup() {
               </div>
               <div className="sm:col-span-2">
                 <Input
-                  label="Slug (identificador único)"
+                  label={t('auth.orgSlug')}
                   value={form.org_slug}
                   onChange={(e) => setForm({ ...form, org_slug: slugify(e.target.value) })}
                   placeholder="limpezas-litoral"
                   required
                   className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
-                <p className="text-[11px] text-gray-500 -mt-2 mb-2">Usado na URL da sua organização</p>
+                <p className="text-[11px] text-gray-500 -mt-2 mb-2">{t('auth.orgSlugHint')}</p>
               </div>
               <div className="sm:col-span-2 pt-2 border-t border-white/10">
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Administrador</p>
+                <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">{t('common.admin')}</p>
               </div>
               <Input
-                label="Nome completo"
+                label={t('auth.fullName')}
                 value={form.admin_full_name}
                 onChange={(e) => setForm({ ...form, admin_full_name: e.target.value })}
-                placeholder="Seu nome"
+                placeholder={t('auth.fullName')}
                 required
                 icon={<User size={16} />}
                 className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
               />
               <Input
-                label="Telefone"
+                label={t('common.phone')}
                 value={form.admin_phone}
                 onChange={(e) => setForm({ ...form, admin_phone: e.target.value })}
-                placeholder="(11) 99999-0000"
+                placeholder={t('auth.phonePlaceholder')}
                 icon={<Phone size={16} />}
                 className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
               />
               <div className="sm:col-span-2">
                 <Input
-                  label="Usuário (login)"
+                  label={t('auth.usernameLogin')}
                   value={form.admin_username}
                   onChange={(e) => setForm({ ...form, admin_username: e.target.value })}
-                  placeholder="admin"
+                  placeholder={t('auth.usernamePlaceholder')}
                   required
                   icon={<User size={16} />}
                   className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
               <Input
-                label="Senha"
+                label={t('common.password')}
                 type="password"
                 value={form.admin_password}
                 onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
-                placeholder="••••••••"
+                placeholder={t('auth.passwordPlaceholder')}
                 required
                 autoComplete="new-password"
                 icon={<Lock size={16} />}
                 className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
               />
               <Input
-                label="Confirmar senha"
+                label={t('auth.confirmPassword')}
                 type="password"
                 value={form.admin_password_confirm}
                 onChange={(e) => setForm({ ...form, admin_password_confirm: e.target.value })}
-                placeholder="••••••••"
+                placeholder={t('auth.passwordPlaceholder')}
                 required
                 autoComplete="new-password"
                 icon={<Lock size={16} />}
@@ -171,12 +177,12 @@ export default function Signup() {
             )}
 
             <Button type="submit" className="w-full !py-3 !text-base mt-6" disabled={loading}>
-              {loading ? 'Criando conta...' : 'Criar organização'}
+              {loading ? t('auth.creating') : t('auth.createOrg')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-6">
-            Já tem conta? <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold">Entrar</Link>
+            {t('auth.hasAccount')} <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold">{t('auth.loginLink')}</Link>
           </p>
         </div>
       </div>

@@ -1,11 +1,14 @@
 ﻿import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../contexts/I18nContext'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import LanguageSwitcher from '../components/ui/LanguageSwitcher'
 import { User, Lock, Sparkles } from 'lucide-react'
 
 export default function Login() {
+  const { t } = useI18n()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -29,6 +32,9 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-950 flex items-center justify-center px-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher variant="dark" />
+      </div>
       {/* Fundo decorativo */}
       <div className="absolute inset-0">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-600/30 blur-3xl"></div>
@@ -43,27 +49,27 @@ export default function Login() {
             <img src="/logo-light.svg" alt="Verus Sweeply" className="h-14 sm:h-16 w-auto max-w-full" />
             <p className="text-sm text-gray-400 mt-3 flex items-center gap-1.5">
               <Sparkles size={14} className="text-brand-400" />
-              Gestão inteligente de limpeza
+              {t('auth.loginSubtitle')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit}>
             <Input
-              label="Usuário"
+              label={t('common.username')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="seu usuário"
+              placeholder={t('auth.usernamePlaceholder')}
               required
               autoComplete="username"
               icon={<User size={16} />}
               className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
             />
             <Input
-              label="Senha"
+              label={t('common.password')}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder')}
               required
               autoComplete="current-password"
               icon={<Lock size={16} />}
@@ -81,17 +87,17 @@ export default function Login() {
               className="w-full !py-3 !text-base"
               disabled={loading}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? t('auth.entering') : t('auth.login')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-6">
-            Não tem conta? <Link to="/signup" className="text-brand-400 hover:text-brand-300 font-semibold">Criar organização</Link>
+            {t('auth.noAccount')} <Link to="/signup" className="text-brand-400 hover:text-brand-300 font-semibold">{t('auth.createAccountLink')}</Link>
           </p>
         </div>
 
         <p className="text-center text-xs text-gray-500 mt-6">
-          Portal da equipe de limpeza · Acesso restrito
+          {t('auth.restricted')}
         </p>
       </div>
     </div>
