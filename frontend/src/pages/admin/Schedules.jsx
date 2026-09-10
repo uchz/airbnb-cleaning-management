@@ -53,6 +53,9 @@ export default function Schedules() {
   const [adhocTasks, setAdhocTasks] = useState([])
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [rescheduleTask, setRescheduleTask] = useState(null)
+  const [confirmDeleteSchedule, setConfirmDeleteSchedule] = useState(null)
+  const [confirmDuplicate, setConfirmDuplicate] = useState(false)
+  const [confirmDeleteAdhoc, setConfirmDeleteAdhoc] = useState(null)
   const [error, setError] = useState('')
 
   const [taskForm, setTaskForm] = useState({
@@ -129,22 +132,31 @@ export default function Schedules() {
     }
   }
 
-  const handleDeleteSchedule = async (id) => {
-    if (!confirm(t('schedules.deleteScheduleConfirm'))) return
+  const handleDeleteSchedule = (id) => {
+    setConfirmDeleteSchedule(id)
+  }
+
+  const confirmDeleteScheduleAction = async () => {
+    if (!confirmDeleteSchedule) return
     try {
-      await deleteSchedule(id)
+      await deleteSchedule(confirmDeleteSchedule)
       setSelected(null)
+      setConfirmDeleteSchedule(null)
       await load()
     } catch (err) {
       alert(err.response?.data?.detail || t('schedules.errorDeleteSchedule'))
     }
   }
 
-  const handleDuplicate = async () => {
-    if (!confirm(t('schedules.duplicateConfirm'))) return
+  const handleDuplicate = () => {
+    setConfirmDuplicate(true)
+  }
+
+  const confirmDuplicateAction = async () => {
     setError('')
     try {
       const res = await duplicateSchedule(selected.id)
+      setConfirmDuplicate(false)
       await load()
       const detail = await getScheduleWithTasks(res.data.id)
       setSelected(detail.data)
@@ -187,10 +199,15 @@ export default function Schedules() {
     }
   }
 
-  const handleDeleteAdhoc = async (id) => {
-    if (!confirm(t('schedules.deleteAdhocConfirm'))) return
+  const handleDeleteAdhoc = (id) => {
+    setConfirmDeleteAdhoc(id)
+  }
+
+  const confirmDeleteAdhocAction = async () => {
+    if (!confirmDeleteAdhoc) return
     try {
-      await deleteTask(id)
+      await deleteTask(confirmDeleteAdhoc)
+      setConfirmDeleteAdhoc(null)
       await load()
     } catch (err) {
       alert(err.response?.data?.detail || t('schedules.errorDeleteDaily'))
@@ -708,6 +725,58 @@ export default function Schedules() {
                   <Button type="submit">{t('schedules.confirmReschedule')}</Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar exclusão de escala */}
+      {confirmDeleteSchedule && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('common.delete')}?</h3>
+            <p className="text-sm text-gray-600 mt-2">{t('schedules.deleteScheduleConfirm')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmDeleteSchedule(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmDeleteScheduleAction}>
+                {t('common.delete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar duplicar escala */}
+      {confirmDuplicate && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('schedules.duplicate')}</h3>
+            <p className="text-sm text-gray-600 mt-2">{t('schedules.duplicateConfirm')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmDuplicate(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={confirmDuplicateAction}>{t('common.confirm')}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar exclusão de diária avulsa */}
+      {confirmDeleteAdhoc && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900">{t('common.delete')}?</h3>
+            <p className="text-sm text-gray-600 mt-2">{t('schedules.deleteAdhocConfirm')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setConfirmDeleteAdhoc(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmDeleteAdhocAction}>
+                {t('common.delete')}
+              </Button>
             </div>
           </div>
         </div>
