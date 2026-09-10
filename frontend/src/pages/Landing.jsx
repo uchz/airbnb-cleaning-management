@@ -10,16 +10,19 @@ export default function Landing() {
   const cta = user ? '/schedules' : '/signup'
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <img src="/logo.svg" alt="Verus Sweeply" className="h-7 w-auto" />
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            <Link to="/login" className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900">{t('auth.login')}</Link>
-            <Link to={cta} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 text-white text-sm font-bold shadow-lg shadow-brand-600/25 hover:from-brand-700 hover:to-violet-700">
-              {t('landing.ctaFree')}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-gray-100 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <img src="/logo.svg" alt="Verus Sweeply" className="h-6 sm:h-7 w-auto shrink-0" />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
+            <Link to="/login" className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 whitespace-nowrap">{t('auth.login')}</Link>
+            <Link to={cta} className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-brand-600/25 hover:from-brand-700 hover:to-violet-700 whitespace-nowrap">
+              <span className="hidden sm:inline">{t('landing.ctaFree')}</span>
+              <span className="sm:hidden">Criar conta</span>
             </Link>
           </div>
         </div>

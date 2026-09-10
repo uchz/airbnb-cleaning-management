@@ -31,24 +31,24 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-950 flex items-center justify-center px-4">
+    <div className="min-h-screen relative overflow-hidden bg-slate-950 flex items-center justify-center px-4 overflow-x-hidden">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher variant="dark" />
       </div>
       {/* Fundo decorativo */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-600/30 blur-3xl"></div>
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-violet-600/30 blur-3xl"></div>
         <div className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-rose-500/20 blur-3xl"></div>
       </div>
 
-      <div className="relative w-full max-w-md animate-scale-in">
+      <div className="relative w-full max-w-md animate-scale-in overflow-x-hidden">
         <div className="bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl p-8 sm:p-10 shadow-2xl">
           {/* Marca */}
-          <div className="flex flex-col items-center mb-8">
-            <img src="/logo-light.svg" alt="Verus Sweeply" className="h-14 sm:h-16 w-auto max-w-full" />
-            <p className="text-sm text-gray-400 mt-3 flex items-center gap-1.5">
-              <Sparkles size={14} className="text-brand-400" />
+          <div className="flex flex-col items-center mb-8 w-full max-w-full overflow-hidden">
+            <img src="/logo-light.svg" alt="Verus Sweeply" className="h-10 sm:h-12 w-auto max-w-[75vw]" />
+            <p className="text-sm text-gray-400 mt-3 flex items-center gap-1.5 text-center px-2">
+              <Sparkles size={14} className="text-brand-400 shrink-0" />
               {t('auth.loginSubtitle')}
             </p>
           </div>

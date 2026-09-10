@@ -82,7 +82,7 @@ export default function Layout({ children }) {
     .toUpperCase()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-full">
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-slate-950 text-gray-300">
         {/* Logo */}
@@ -199,9 +199,9 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <div className="lg:pl-64">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 min-h-[calc(100vh-56px)] pb-24 lg:pb-8">
-          <div className="animate-fade-in" key={location.pathname}>
+      <div className="lg:pl-64 w-full max-w-full overflow-x-hidden">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 min-h-[calc(100vh-56px)] pb-24 lg:pb-8 w-full max-w-full overflow-x-hidden">
+          <div className="animate-fade-in w-full max-w-full overflow-x-hidden" key={location.pathname}>
             {children}
           </div>
         </main>
