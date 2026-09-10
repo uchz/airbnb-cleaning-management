@@ -17,7 +17,7 @@ export default function PrivacySettings() {
 
   const loadAccessLogs = async () => {
     try {
-      const response = await api.get('/api/privacy/me/access-logs');
+      const response = await api.get('/privacy/me/access-logs');
       setAccessLogs(response.data.logs || []);
     } catch (error) {
       console.error('Erro ao carregar logs:', error);
@@ -26,7 +26,7 @@ export default function PrivacySettings() {
 
   const loadUserData = async () => {
     try {
-      const response = await api.get('/api/privacy/me/data');
+      const response = await api.get('/privacy/me/data');
       setUserData(response.data);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -36,7 +36,7 @@ export default function PrivacySettings() {
   const handleExportData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/privacy/me/export');
+      const response = await api.get('/privacy/me/export');
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -70,7 +70,7 @@ export default function PrivacySettings() {
 
     setLoading(true);
     try {
-      const response = await api.delete('/api/privacy/me/account');
+      const response = await api.delete('/privacy/me/account');
       alert('✅ ' + response.data.message);
       window.location.href = '/login';
     } catch (error) {

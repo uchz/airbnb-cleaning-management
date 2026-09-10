@@ -13,7 +13,7 @@ export default function ConsentModal() {
     // Verificar se usuário já deu consentimento
     const checkConsent = async () => {
       try {
-        const response = await api.get('/api/privacy/me/data');
+        const response = await api.get('/privacy/me/data');
         const userData = response.data.user;
         
         // Se não tiver consentimento registrado, mostrar modal
@@ -40,7 +40,7 @@ export default function ConsentModal() {
 
     setLoading(true);
     try {
-      await api.post('/api/privacy/consent', {
+      await api.post('/privacy/consent', {
         privacy_consent: true,
         video_consent: true,
         consented_at: new Date().toISOString()
