@@ -26,6 +26,7 @@ export default function Products() {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [showLowOnly, setShowLowOnly] = useState(false)
   const [confirmProduct, setConfirmProduct] = useState(null)
   const [page, setPage] = useState(1)
   const perPage = 9
@@ -46,6 +47,7 @@ export default function Products() {
   }, [])
 
   const filtered = products.filter((p) => {
+    if (showLowOnly && !p.is_low_stock) return false
     const q = search.trim().toLowerCase()
     if (!q) return true
     return p.name.toLowerCase().includes(q) || (p.observations || '').toLowerCase().includes(q)
@@ -148,17 +150,21 @@ export default function Products() {
       </div>
 
       {lowStockCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3 animate-fade-in">
+        <button
+          onClick={() => { setShowLowOnly((v) => !v); setPage(1) }}
+          className={`w-full text-left bg-amber-50 border rounded-xl p-4 mb-6 flex items-start gap-3 animate-fade-in hover:bg-amber-100/50 transition-colors ${showLowOnly ? 'border-amber-300 ring-1 ring-amber-200' : 'border-amber-200'}`}
+        >
           <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-amber-800">
               {t('products.lowStockCount', { count: lowStockCount, plural: lowStockCount > 1 ? 's' : '' })}
+              <span className="ml-2 text-xs font-normal underline">{showLowOnly ? t('common.filter') + ': ON' : t('common.filter')}</span>
             </p>
-            <p className="text-sm text-amber-700 mt-0.5">
+            <p className="text-sm text-amber-700 mt-0.5 truncate">
               {products.filter((p) => p.is_low_stock).map((p) => p.name).join(', ')}
             </p>
           </div>
-        </div>
+        </button>
       )}
 
       {loading ? (
@@ -247,7 +253,7 @@ export default function Products() {
       {filtered.length > perPage && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-gray-500">
-            {filtered.length} {filtered.length === 1 ? 'produto' : 'produtos'} · {t('common.of')} {page} {t('common.of')} {totalPages}
+            {filtered.length} {filtered.length === 1 ? 'produto' : 'produtos'} · página {page} de {totalPages}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
