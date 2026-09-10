@@ -2,18 +2,19 @@
 import { useNavigate } from 'react-router-dom'
 import { getSchedules, getScheduleWithTasks, getTasks, getMyFeedUrl } from '../../services'
 import { useAuth } from '../../contexts/AuthContext'
+import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { formatTime, formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
+import { formatTime, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
 import { MapPin, Clock, Play, CheckCircle2, CalendarDays, Zap, Copy, Check } from 'lucide-react'
 
 const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
 export default function MySchedule() {
   const { user } = useAuth()
+  const { t, formatDate } = useI18n()
   const navigate = useNavigate()
   const [schedule, setSchedule] = useState(null)
   const [adhocTasks, setAdhocTasks] = useState([])
@@ -79,8 +80,8 @@ export default function MySchedule() {
         <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <CalendarDays size={28} className="text-gray-400" />
         </div>
-        <p className="text-gray-600 font-medium mb-1">Nenhuma escala publicada para esta semana.</p>
-        <p className="text-sm text-gray-400">Fale com o administrador.</p>
+        <p className="text-gray-600 font-medium mb-1">{t('mySchedule.noSchedule')}</p>
+        <p className="text-sm text-gray-400">{t('mySchedule.noScheduleHint')}</p>
       </div>
     )
   }
@@ -104,20 +105,19 @@ export default function MySchedule() {
       {schedule && (
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Minha <span className="text-gradient">Escala</span>
+            {t('mySchedule.title').split(' ')[0]} <span className="text-gradient">{t('mySchedule.title').split(' ').slice(1).join(' ') || ''}</span>
           </h1>
           <p className="text-gray-500 mt-1">
-            Período de {format(new Date(schedule.start_date + 'T00:00:00'), 'dd/MM', { locale: ptBR })} a{' '}
-            {format(new Date(schedule.end_date + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
+            {t('mySchedule.periodOf', { start: formatDate(schedule.start_date, 'dd/MM'), end: formatDate(schedule.end_date, 'dd/MM') })}
           </p>
         </div>
       )}
       {!schedule && (
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Minhas <span className="text-gradient">Diárias</span>
+            {t('mySchedule.titleDailies').split(' ')[0]} <span className="text-gradient">{t('mySchedule.titleDailies').split(' ').slice(1).join(' ') || ''}</span>
           </h1>
-          <p className="text-gray-500 mt-1">Nenhuma escala publicada — confira suas diárias avulsas abaixo.</p>
+          <p className="text-gray-500 mt-1">{t('mySchedule.noScheduleDailiesHint')}</p>
         </div>
       )}
 
@@ -143,14 +143,14 @@ export default function MySchedule() {
                     {WEEK_DAY_LABELS[day.getDay()]}
                   </p>
                   <p className={`text-xs ${isToday ? 'text-white/80' : 'text-gray-500'}`}>
-                    {format(day, 'dd/MM', { locale: ptBR })}
+                    {formatDate(day.toISOString().slice(0,10), 'dd/MM')}
                   </p>
                 </div>
-                {isToday && <Badge color="green">Hoje</Badge>}
+                {isToday && <Badge color="green">{t('schedules.today')}</Badge>}
               </div>
 
               {dayTasks.length === 0 && (
-                <p className="text-sm text-gray-400">Sem limpezas agendadas</p>
+                <p className="text-sm text-gray-400">{t('mySchedule.noCleanings')}</p>
               )}
 
               <div className="space-y-3">
@@ -180,21 +180,21 @@ export default function MySchedule() {
                     <div className="mt-3">
                       {task.status === 'completed' ? (
                         <div className="flex items-center gap-2 text-emerald-600 text-xs font-semibold">
-                          <CheckCircle2 size={16} /> Limpeza concluída
+                          <CheckCircle2 size={16} /> {t('mySchedule.completed')}
                         </div>
                       ) : task.status === 'in_progress' ? (
                         <button
                           onClick={() => navigate(`/task/${task.id}`)}
                           className="w-full bg-brand-100 text-brand-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-brand-200 transition-all active:scale-[0.98]"
                         >
-                          Continuar (finalizar)
+                          {t('mySchedule.continue')}
                         </button>
                       ) : (
                         <button
                           onClick={() => navigate(`/task/${task.id}`)}
                           className="w-full bg-gradient-to-r from-brand-600 to-violet-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:from-brand-700 hover:to-violet-700 transition-all active:scale-[0.98] shadow-md shadow-brand-600/25 flex items-center justify-center gap-2"
                         >
-                          <Play size={14} /> Iniciar Limpeza
+                          <Play size={14} /> {t('mySchedule.startCleaning')}
                         </button>
                       )}
                     </div>
@@ -211,7 +211,7 @@ export default function MySchedule() {
       {adhocTasks.length > 0 && (
         <div className={schedule ? 'mt-8' : ''}>
           <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <Zap size={18} className="text-amber-500" /> Diárias avulsas
+            <Zap size={18} className="text-amber-500" /> {t('mySchedule.adhocTitle')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {adhocTasks.map((task) => (
@@ -232,21 +232,21 @@ export default function MySchedule() {
                 <div className="mt-3">
                   {task.status === 'completed' ? (
                     <div className="flex items-center gap-2 text-emerald-600 text-xs font-semibold">
-                      <CheckCircle2 size={16} /> Limpeza concluída
+                      <CheckCircle2 size={16} /> {t('mySchedule.completed')}
                     </div>
                   ) : task.status === 'in_progress' ? (
                     <button
                       onClick={() => navigate(`/task/${task.id}`)}
                       className="w-full bg-brand-100 text-brand-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-brand-200 transition-all active:scale-[0.98]"
                     >
-                      Continuar (finalizar)
+                      {t('mySchedule.continue')}
                     </button>
                   ) : (
                     <button
                       onClick={() => navigate(`/task/${task.id}`)}
                       className="w-full bg-gradient-to-r from-brand-600 to-violet-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:from-brand-700 hover:to-violet-700 transition-all active:scale-[0.98] shadow-md shadow-brand-600/25 flex items-center justify-center gap-2"
                     >
-                      <Play size={14} /> Iniciar Limpeza
+                      <Play size={14} /> {t('mySchedule.startCleaning')}
                     </button>
                   )}
                 </div>
@@ -263,15 +263,15 @@ export default function MySchedule() {
               <CalendarDays size={22} className="text-brand-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 text-sm">Sincronizar com Google Calendar</p>
+              <p className="font-bold text-gray-900 text-sm">{t('mySchedule.syncTitle')}</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                No Google Calendar: <strong>Outros calendários → De URL</strong> e cole o link. Suas limpezas aparecem automaticamente no seu calendário.
+                {t('mySchedule.syncDesc')}
               </p>
             </div>
             <Button variant="outline" onClick={copyFeed} className="shrink-0">
               <span className="flex items-center gap-2">
                 {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
-                {copied ? 'Copiado!' : 'Copiar link'}
+                {copied ? t('mySchedule.copied') : t('mySchedule.copyLink')}
               </span>
             </Button>
           </div>

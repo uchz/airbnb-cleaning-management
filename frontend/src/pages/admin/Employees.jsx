@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { getEmployees, createUser, updateUser, deleteUser } from '../../services'
+import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -16,6 +17,7 @@ const emptyForm = {
 }
 
 export default function Employees() {
+  const { t } = useI18n()
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -70,17 +72,17 @@ export default function Employees() {
       setShowModal(false)
       await load()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao salvar funcionário')
+      setError(err.response?.data?.detail || t('schedules.errorSaveEmployee'))
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este funcionário?')) return
+    if (!confirm(t('schedules.deleteEmployeeConfirm'))) return
     try {
       await deleteUser(id)
       await load()
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao excluir funcionário')
+      alert(err.response?.data?.detail || t('schedules.errorDeleteEmployee'))
     }
   }
 
@@ -89,13 +91,13 @@ export default function Employees() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            <span className="text-gradient">Funcionários</span>
+            <span className="text-gradient">{t('employees.title')}</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Equipe de limpeza e dados para pagamento</p>
+          <p className="text-sm text-gray-500 mt-1">{t('employees.subtitle')}</p>
         </div>
         <Button onClick={openCreate}>
           <span className="flex items-center gap-2">
-            <Plus size={16} /> Novo Funcionário
+            <Plus size={16} /> {t('employees.new')}
           </span>
         </Button>
       </div>
@@ -106,7 +108,7 @@ export default function Employees() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {employees.length === 0 && (
             <Card className="p-8 text-center text-gray-500 md:col-span-2 lg:col-span-3">
-              Nenhum funcionário cadastrado ainda.
+              {t('employees.noEmployees')}
             </Card>
           )}
           {employees.map((emp) => (
@@ -119,7 +121,7 @@ export default function Employees() {
                   <div>
                     <h3 className="font-semibold text-gray-900">{emp.full_name}</h3>
                     <Badge color={emp.is_active ? 'green' : 'gray'}>
-                      {emp.is_active ? 'Ativo' : 'Inativo'}
+                      {emp.is_active ? t('employees.active') : t('employees.inactive')}
                     </Badge>
                   </div>
                 </div>
@@ -149,7 +151,7 @@ export default function Employees() {
                 )}
                 {emp.payment_info && (
                   <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
-                    Pagamento: {emp.payment_info}
+                    {t('employees.paymentLabel')}: {emp.payment_info}
                   </p>
                 )}
               </div>
@@ -164,38 +166,38 @@ export default function Employees() {
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">
-                {editing ? 'Editar Funcionário' : 'Novo Funcionário'}
+                {editing ? t('employees.edit') : t('employees.new')}
               </h2>
               <form onSubmit={handleSubmit}>
                 <Input
-                  label="Nome completo"
+                  label={t('employees.name')}
                   value={form.full_name}
                   onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                   required
                 />
                 <Input
-                  label="Usuário"
+                  label={t('employees.username')}
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
                   required
                 />
                 <Input
-                  label={editing ? 'Nova senha (deixe em branco para manter)' : 'Senha'}
+                  label={editing ? t('employees.passwordNewHint') : t('employees.password')}
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required={!editing}
                 />
                 <PhoneInput
-                  label="Telefone"
+                  label={t('employees.phone')}
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
                 <Input
-                  label="Dados para pagamento (PIX, conta)"
+                  label={t('employees.paymentInfo')}
                   value={form.payment_info}
                   onChange={(e) => setForm({ ...form, payment_info: e.target.value })}
-                  placeholder="Chave PIX, etc."
+                  placeholder="PIX"
                 />
 
                 {error && (
@@ -206,9 +208,9 @@ export default function Employees() {
 
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowModal(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">{editing ? 'Salvar' : 'Criar'}</Button>
+                  <Button type="submit">{editing ? t('common.save') : t('common.create')}</Button>
                 </div>
               </form>
             </div>

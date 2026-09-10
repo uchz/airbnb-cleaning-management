@@ -12,19 +12,20 @@ import {
   getTasks,
   reschedule,
 } from '../../services'
+import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import Select from '../../components/ui/Select'
 import Badge from '../../components/ui/Badge'
 import { format, addDays } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { formatDate, taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
+import { taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
 import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap, CopyPlus } from 'lucide-react'
 
 const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
 
 export default function Schedules() {
+  const { t, formatDate } = useI18n()
   const [schedules, setSchedules] = useState([])
   const [selected, setSelected] = useState(null)
   const [employees, setEmployees] = useState([])
@@ -64,8 +65,8 @@ export default function Schedules() {
         const detail = await getScheduleWithTasks(res.data[0].id)
         setSelected(detail.data)
       }
-      const t = await getTasks()
-      setAdhocTasks(t.data.filter((x) => !x.schedule_id))
+      const tt = await getTasks()
+      setAdhocTasks(tt.data.filter((x) => !x.schedule_id))
     } catch (err) {
       console.error(err)
     } finally {
@@ -88,11 +89,11 @@ export default function Schedules() {
     e.preventDefault()
     try {
       if (!customStart || !customEnd) {
-        setError('Informe a data inicial e final do período.')
+        setError(t('schedules.errorStartEnd'))
         return
       }
       if (customEnd < customStart) {
-        setError('A data final deve ser depois da inicial.')
+        setError(t('schedules.errorEndBeforeStart'))
         return
       }
 
@@ -110,23 +111,23 @@ export default function Schedules() {
         setSelected(detail.data)
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao criar escala')
+      setError(err.response?.data?.detail || t('schedules.errorCreateSchedule'))
     }
   }
 
   const handleDeleteSchedule = async (id) => {
-    if (!confirm('Excluir esta escala e todas as tarefas associadas?')) return
+    if (!confirm(t('schedules.deleteScheduleConfirm'))) return
     try {
       await deleteSchedule(id)
       setSelected(null)
       await load()
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao excluir escala')
+      alert(err.response?.data?.detail || t('schedules.errorDeleteSchedule'))
     }
   }
 
   const handleDuplicate = async () => {
-    if (!confirm('Duplicar esta escala para o próximo período (mesmas tarefas, datas deslocadas)?')) return
+    if (!confirm(t('schedules.duplicateConfirm'))) return
     setError('')
     try {
       const res = await duplicateSchedule(selected.id)
@@ -134,7 +135,7 @@ export default function Schedules() {
       const detail = await getScheduleWithTasks(res.data.id)
       setSelected(detail.data)
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao duplicar escala')
+      alert(err.response?.data?.detail || t('schedules.errorDuplicate'))
     }
   }
 
@@ -150,7 +151,7 @@ export default function Schedules() {
       setShowTaskModal(false)
       await selectSchedule(selected.id)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao criar tarefa')
+      setError(err.response?.data?.detail || t('schedules.errorCreateTask'))
     }
   }
 
@@ -168,17 +169,17 @@ export default function Schedules() {
       setShowAdhocModal(false)
       await load()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao criar diária')
+      setError(err.response?.data?.detail || t('schedules.errorCreateDaily'))
     }
   }
 
   const handleDeleteAdhoc = async (id) => {
-    if (!confirm('Excluir esta diária avulsa?')) return
+    if (!confirm(t('schedules.deleteAdhocConfirm'))) return
     try {
       await deleteTask(id)
       await load()
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao excluir diária')
+      alert(err.response?.data?.detail || t('schedules.errorDeleteDaily'))
     }
   }
 
@@ -206,7 +207,7 @@ export default function Schedules() {
       setShowRescheduleModal(false)
       await selectSchedule(selected.id)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao reagendar')
+      setError(err.response?.data?.detail || t('schedules.errorReschedule'))
     }
   }
 
@@ -236,19 +237,19 @@ export default function Schedules() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            <span className="text-gradient">Escalas</span>
+            <span className="text-gradient">{t('schedules.title')}</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Crie escalas por período — de 1 dia a várias semanas</p>
+          <p className="text-sm text-gray-500 mt-1">{t('schedules.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={openAdhocModal}>
             <span className="flex items-center gap-2">
-              <Zap size={16} /> Nova Diária
+              <Zap size={16} /> {t('schedules.newDailyBtn')}
             </span>
           </Button>
           <Button onClick={() => setShowNewWeek(true)}>
             <span className="flex items-center gap-2">
-              <CalendarPlus size={16} /> Nova Escala
+              <CalendarPlus size={16} /> {t('schedules.newSchedule')}
             </span>
           </Button>
         </div>
@@ -259,11 +260,11 @@ export default function Schedules() {
         <div className="lg:w-64 shrink-0">
           <Card className="overflow-hidden">
             <div className="p-3 border-b border-gray-200 font-semibold text-gray-900 text-sm">
-              Semanas
+              {t('schedules.weeks')}
             </div>
             <ul className="divide-y divide-gray-100">
               {schedules.length === 0 && (
-                <li className="p-4 text-sm text-gray-500">Nenhuma escala criada.</li>
+                <li className="p-4 text-sm text-gray-500">{t('schedules.noSchedules')}</li>
               )}
               {schedules.map((s) => (
                 <li key={s.id}>
@@ -296,10 +297,10 @@ export default function Schedules() {
         <div className="flex-1 min-w-0">
           {!selected ? (
             <Card className="p-12 text-center text-gray-500">
-              <p className="mb-2">Nenhuma escala selecionada.</p>
+              <p className="mb-2">{t('schedules.noScheduleSelected')}</p>
               <Button onClick={() => setShowNewWeek(true)}>
                 <span className="flex items-center gap-2">
-                  <CalendarPlus size={16} /> Criar a primeira escala
+                  <CalendarPlus size={16} /> {t('schedules.createFirst')}
                 </span>
               </Button>
             </Card>
@@ -308,21 +309,21 @@ export default function Schedules() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="font-bold text-gray-900">
-                    Período de {formatDate(selected.start_date)} a {formatDate(selected.end_date)}
+                    {t('schedules.periodOf', { start: formatDate(selected.start_date), end: formatDate(selected.end_date) })}
                   </h2>
                   <Badge color={selected.status === 'active' ? 'green' : 'gray'}>
-                    {selected.status === 'active' ? 'Ativa' : selected.status}
+                    {selected.status === 'active' ? t('schedules.active') : selected.status}
                   </Badge>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleDuplicate}>
                     <span className="flex items-center gap-2">
-                      <CopyPlus size={16} /> Duplicar
+                      <CopyPlus size={16} /> {t('schedules.duplicate')}
                     </span>
                   </Button>
                   <Button variant="outline" onClick={() => openTaskModal()}>
                     <span className="flex items-center gap-2">
-                      <Plus size={16} /> Adicionar Tarefa
+                      <Plus size={16} /> {t('schedules.addTask')}
                     </span>
                   </Button>
                 </div>
@@ -340,19 +341,19 @@ export default function Schedules() {
                           <p className="font-semibold text-gray-900 text-sm">
                             {WEEK_DAY_LABELS[day.getDay()]}
                           </p>
-                          <p className="text-xs text-gray-500">{format(day, 'dd/MM', { locale: ptBR })}</p>
+                          <p className="text-xs text-gray-500">{formatDate(day.toISOString().slice(0,10))}</p>
                         </div>
                         <button
                           onClick={() => openTaskModal(dateKey)}
                           className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg"
-                          title="Adicionar tarefa"
+                          title={t('schedules.addTaskTitle')}
                         >
                           <Plus size={16} />
                         </button>
                       </div>
                       <div className="space-y-2">
                         {dayTasks.length === 0 && (
-                          <p className="text-xs text-gray-400">Sem tarefas</p>
+                          <p className="text-xs text-gray-400">{t('schedules.noTasks')}</p>
                         )}
                         {dayTasks.map((task) => {
                           const emp = employees.find((e) => e.id === task.employee_id)
@@ -400,28 +401,28 @@ export default function Schedules() {
         <Card className="mt-6 overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Zap size={16} className="text-amber-500" />
-            <p className="font-semibold text-gray-900 text-sm">Diárias avulsas</p>
-            <span className="text-xs text-gray-400">fora de escala (free-lance)</span>
+            <p className="font-semibold text-gray-900 text-sm">{t('schedules.adhocTitle')}</p>
+            <span className="text-xs text-gray-400">{t('schedules.adhocSubtitle')}</span>
           </div>
           <ul className="divide-y divide-gray-100">
-            {adhocTasks.map((t) => {
-              const emp = employees.find((e) => e.id === t.employee_id)
+            {adhocTasks.map((tt) => {
+              const emp = employees.find((e) => e.id === tt.employee_id)
               return (
-                <li key={t.id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-50">
-                  <button onClick={() => openReschedule(t)} className="flex-1 text-left min-w-0">
+                <li key={tt.id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-50">
+                  <button onClick={() => openReschedule(tt)} className="flex-1 text-left min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">
-                      {t.apartment_name || `Apto #${t.apartment_id}`}
-                      <span className="ml-2 text-gray-400 font-normal">{formatDate(t.scheduled_date)} · {t.scheduled_time?.substring(0, 5)}</span>
+                      {tt.apartment_name || `Apto #${tt.apartment_id}`}
+                      <span className="ml-2 text-gray-400 font-normal">{formatDate(tt.scheduled_date)} · {tt.scheduled_time?.substring(0, 5)}</span>
                     </p>
                     <p className="text-xs text-gray-500">
                       {emp?.full_name?.split(' ')[0] || '—'} ·{' '}
-                      <Badge color={taskStatusColors[t.status]}>{taskStatusLabels[t.status]}</Badge>
+                      <Badge color={taskStatusColors[tt.status]}>{taskStatusLabels[tt.status]}</Badge>
                     </p>
                   </button>
                   <button
-                    onClick={() => handleDeleteAdhoc(t.id)}
+                    onClick={() => handleDeleteAdhoc(tt.id)}
                     className="text-gray-400 hover:text-red-500 p-1 shrink-0"
-                    title="Excluir"
+                    title={t('common.delete')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -437,21 +438,21 @@ export default function Schedules() {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">Nova Escala por Período</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">{t('schedules.newSchedulePeriod')}</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Escolha as datas de início e fim — pode ser 1 dia, alguns dias ou semanas.
+                {t('schedules.newSchedulePeriodDesc')}
               </p>
               <form onSubmit={handleCreateSchedule}>
                 <div className="space-y-3">
                   <Input
-                    label="Data inicial"
+                    label={t('schedules.startDate')}
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
                     required
                   />
                   <Input
-                    label="Data final"
+                    label={t('schedules.endDate')}
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
@@ -465,9 +466,9 @@ export default function Schedules() {
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowNewWeek(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Criar Escala</Button>
+                  <Button type="submit">{t('schedules.createSchedule')}</Button>
                 </div>
               </form>
             </div>
@@ -480,15 +481,15 @@ export default function Schedules() {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Nova Tarefa de Limpeza</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">{t('schedules.newTask')}</h2>
               <form onSubmit={handleCreateTask}>
                 <Select
-                  label="Funcionário"
+                  label={t('schedules.employee')}
                   value={taskForm.employee_id}
                   onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })}
                   required
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">{t('schedules.select')}</option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.full_name}
@@ -496,12 +497,12 @@ export default function Schedules() {
                   ))}
                 </Select>
                 <Select
-                  label="Apartamento"
+                  label={t('schedules.apartment')}
                   value={taskForm.apartment_id}
                   onChange={(e) => setTaskForm({ ...taskForm, apartment_id: e.target.value })}
                   required
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">{t('schedules.select')}</option>
                   {apartments.map((ap) => (
                     <option key={ap.id} value={ap.id}>
                       {ap.name} - {ap.address}
@@ -509,29 +510,29 @@ export default function Schedules() {
                   ))}
                 </Select>
                 <Input
-                  label="Data"
+                  label={t('schedules.date')}
                   type="date"
                   value={taskForm.scheduled_date}
                   onChange={(e) => setTaskForm({ ...taskForm, scheduled_date: e.target.value })}
                   required
                 />
                 <Input
-                  label="Horário"
+                  label={t('schedules.time')}
                   type="time"
                   value={taskForm.scheduled_time}
                   onChange={(e) => setTaskForm({ ...taskForm, scheduled_time: e.target.value })}
                   required
                 />
                 <Select
-                  label="Tipo de Diária"
+                  label={t('schedules.dailyType')}
                   value={taskForm.task_type}
                   onChange={(e) => setTaskForm({ ...taskForm, task_type: e.target.value })}
                 >
-                  <option value="full_day">Diária Inteira</option>
-                  <option value="half_day">Meia Diária</option>
+                  <option value="full_day">{t('schedules.fullDay')}</option>
+                  <option value="half_day">{t('schedules.halfDay')}</option>
                 </Select>
                 <Input
-                  label="Observações"
+                  label={t('schedules.notes')}
                   value={taskForm.notes}
                   onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
                 />
@@ -542,9 +543,9 @@ export default function Schedules() {
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowTaskModal(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Criar Tarefa</Button>
+                  <Button type="submit">{t('schedules.createTask')}</Button>
                 </div>
               </form>
             </div>
@@ -559,19 +560,19 @@ export default function Schedules() {
             <div className="p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
                 <Zap size={18} className="text-amber-500" />
-                Nova Diária Avulsa
+                {t('schedules.newDaily')}
               </h2>
               <p className="text-sm text-gray-500 mb-4">
-                Tarefa fora de qualquer escala — ideal para free-lancers ou demandas pontuais.
+                {t('schedules.newDailyDesc')}
               </p>
               <form onSubmit={handleCreateAdhoc}>
                 <Select
-                  label="Funcionário"
+                  label={t('schedules.employee')}
                   value={taskForm.employee_id}
                   onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })}
                   required
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">{t('schedules.select')}</option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.full_name}
@@ -579,12 +580,12 @@ export default function Schedules() {
                   ))}
                 </Select>
                 <Select
-                  label="Apartamento"
+                  label={t('schedules.apartment')}
                   value={taskForm.apartment_id}
                   onChange={(e) => setTaskForm({ ...taskForm, apartment_id: e.target.value })}
                   required
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">{t('schedules.select')}</option>
                   {apartments.map((ap) => (
                     <option key={ap.id} value={ap.id}>
                       {ap.name} - {ap.address}
@@ -592,29 +593,29 @@ export default function Schedules() {
                   ))}
                 </Select>
                 <Input
-                  label="Data"
+                  label={t('schedules.date')}
                   type="date"
                   value={taskForm.scheduled_date}
                   onChange={(e) => setTaskForm({ ...taskForm, scheduled_date: e.target.value })}
                   required
                 />
                 <Input
-                  label="Horário"
+                  label={t('schedules.time')}
                   type="time"
                   value={taskForm.scheduled_time}
                   onChange={(e) => setTaskForm({ ...taskForm, scheduled_time: e.target.value })}
                   required
                 />
                 <Select
-                  label="Tipo de Diária"
+                  label={t('schedules.dailyType')}
                   value={taskForm.task_type}
                   onChange={(e) => setTaskForm({ ...taskForm, task_type: e.target.value })}
                 >
-                  <option value="full_day">Diária Inteira</option>
-                  <option value="half_day">Meia Diária</option>
+                  <option value="full_day">{t('schedules.fullDay')}</option>
+                  <option value="half_day">{t('schedules.halfDay')}</option>
                 </Select>
                 <Input
-                  label="Observações"
+                  label={t('schedules.notes')}
                   value={taskForm.notes}
                   onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
                 />
@@ -625,9 +626,9 @@ export default function Schedules() {
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowAdhocModal(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Criar Diária</Button>
+                  <Button type="submit">{t('schedules.createDaily')}</Button>
                 </div>
               </form>
             </div>
@@ -642,28 +643,28 @@ export default function Schedules() {
             <div className="p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <RefreshCw size={18} className="text-brand-600" />
-                Reagendar: {rescheduleTask.apartment_name}
+                {t('schedules.reschedule')}: {rescheduleTask.apartment_name}
               </h2>
               <form onSubmit={handleReschedule}>
                 <Input
-                  label="Nova data"
+                  label={t('schedules.newDate')}
                   type="date"
                   value={rescheduleForm.new_date}
                   onChange={(e) => setRescheduleForm({ ...rescheduleForm, new_date: e.target.value })}
                   required
                 />
                 <Input
-                  label="Novo horário"
+                  label={t('schedules.newTime')}
                   type="time"
                   value={rescheduleForm.new_time}
                   onChange={(e) => setRescheduleForm({ ...rescheduleForm, new_time: e.target.value })}
                 />
                 <Select
-                  label="Funcionário (opcional - para reatribuir)"
+                  label={t('schedules.newEmployeeOptional')}
                   value={rescheduleForm.new_employee_id}
                   onChange={(e) => setRescheduleForm({ ...rescheduleForm, new_employee_id: e.target.value })}
                 >
-                  <option value="">Manter atual</option>
+                  <option value="">{t('schedules.keepCurrent')}</option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.full_name}
@@ -671,10 +672,10 @@ export default function Schedules() {
                   ))}
                 </Select>
                 <Input
-                  label="Motivo do reagendamento"
+                  label={t('schedules.rescheduleReason')}
                   value={rescheduleForm.reason}
                   onChange={(e) => setRescheduleForm({ ...rescheduleForm, reason: e.target.value })}
-                  placeholder="Ex: horário indisponível"
+                  placeholder={t('schedules.rescheduleReasonPlaceholder')}
                   required
                 />
                 {error && (
@@ -684,9 +685,9 @@ export default function Schedules() {
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <Button variant="outline" onClick={() => setShowRescheduleModal(false)}>
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Confirmar Reagendamento</Button>
+                  <Button type="submit">{t('schedules.confirmReschedule')}</Button>
                 </div>
               </form>
             </div>

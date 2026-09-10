@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTask, getExecution, checkin, checkout, getTaskChecklist, updateChecklistItem } from '../../services'
+import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
@@ -11,6 +12,7 @@ import { MapPin, Clock, ArrowLeft, Video as VideoIcon, CheckCircle2, Loader2, Li
 export default function TaskExecution() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [task, setTask] = useState(null)
   const [execution, setExecution] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -72,7 +74,7 @@ export default function TaskExecution() {
 
   const handleCheckin = async () => {
     if (!videoBlob) {
-      setError('Grave o vídeo de entrada antes de confirmar.')
+      setError(t('taskExecution.needVideoEntry'))
       return
     }
     setSubmitting(true)
@@ -86,7 +88,7 @@ export default function TaskExecution() {
       setObservations('')
       loadChecklist()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao enviar vídeo de entrada')
+      setError(err.response?.data?.detail || t('taskExecution.errorCheckin') || 'Erro ao enviar vídeo de entrada')
     } finally {
       setSubmitting(false)
     }
@@ -94,7 +96,7 @@ export default function TaskExecution() {
 
   const handleCheckout = async () => {
     if (!videoBlob) {
-      setError('Grave o vídeo de saída antes de confirmar.')
+      setError(t('taskExecution.needVideoExit'))
       return
     }
     setSubmitting(true)
@@ -104,7 +106,7 @@ export default function TaskExecution() {
       setStep('done')
       setVideoBlob(null)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao enviar vídeo de saída')
+      setError(err.response?.data?.detail || t('taskExecution.errorCheckout') || 'Erro ao enviar vídeo de saída')
     } finally {
       setSubmitting(false)
     }
@@ -117,9 +119,9 @@ export default function TaskExecution() {
   if (!task) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500">Tarefa não encontrada.</p>
+        <p className="text-gray-500">{t('taskExecution.notFound')}</p>
         <Button variant="outline" onClick={() => navigate('/')} className="mt-4">
-          Voltar
+          {t('common.back')}
         </Button>
       </div>
     )
@@ -128,7 +130,7 @@ export default function TaskExecution() {
   return (
     <div className="max-w-2xl mx-auto">
       <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-4">
-        <ArrowLeft size={16} /> Voltar para a escala
+        <ArrowLeft size={16} /> {t('taskExecution.backToSchedule')}
       </button>
 
       {/* Info da tarefa */}
@@ -144,7 +146,7 @@ export default function TaskExecution() {
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/90 mt-2 pt-3 border-t border-white/20">
           <span className="flex items-center gap-1.5">
-            <Clock size={14} /> {formatDate(task.scheduled_date)} às {formatTime(task.scheduled_time)}
+            <Clock size={14} /> {formatDate(task.scheduled_date)} {t('common.to')} {formatTime(task.scheduled_time)}
           </span>
         </div>
       </div>
@@ -153,11 +155,11 @@ export default function TaskExecution() {
       <div className="flex gap-3 mb-6 items-center">
         <div className="flex-1">
           <div className={`h-2 rounded-full transition-all duration-500 ${step !== 'checkin' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-brand-500 to-violet-500'}`}></div>
-          <p className={`text-xs font-semibold mt-1 ${step !== 'checkin' ? 'text-emerald-600' : 'text-brand-600'}`}>Entrada</p>
+          <p className={`text-xs font-semibold mt-1 ${step !== 'checkin' ? 'text-emerald-600' : 'text-brand-600'}`}>{t('taskExecution.stepEntry')}</p>
         </div>
         <div className="flex-1">
           <div className={`h-2 rounded-full transition-all duration-500 ${step === 'done' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gray-200'}`}></div>
-          <p className={`text-xs font-semibold mt-1 ${step === 'done' ? 'text-emerald-600' : 'text-gray-400'}`}>Saída</p>
+          <p className={`text-xs font-semibold mt-1 ${step === 'done' ? 'text-emerald-600' : 'text-gray-400'}`}>{t('taskExecution.stepExit')}</p>
         </div>
       </div>
 
@@ -165,10 +167,10 @@ export default function TaskExecution() {
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <VideoIcon size={18} className="text-brand-600" />
-            <h2 className="font-bold text-gray-900">1. Vídeo de Entrada</h2>
+            <h2 className="font-bold text-gray-900">{t('taskExecution.videoEntry')}</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Grave o vídeo mostrando <strong>como encontrou o apartamento</strong>. Pode durar até 2 minutos.
+            {t('taskExecution.videoEntryDesc')}
           </p>
 
           <form
@@ -181,7 +183,7 @@ export default function TaskExecution() {
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              placeholder="Observações (opcional)"
+              placeholder={t('taskExecution.observationsPlaceholder')}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl mt-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 focus:bg-white transition-all"
               rows={2}
             />
@@ -194,10 +196,10 @@ export default function TaskExecution() {
               <Button type="submit" variant="success" className="w-full !py-3" disabled={submitting || !videoBlob}>
                 {submitting ? (
                   <span className="flex items-center gap-2 justify-center">
-                    <Loader2 size={16} className="animate-spin" /> Enviando...
+                    <Loader2 size={16} className="animate-spin" /> {t('taskExecution.sending')}
                   </span>
                 ) : (
-                  'Confirmar Entrada'
+                  t('taskExecution.confirmEntry')
                 )}
               </Button>
             </div>
@@ -210,17 +212,17 @@ export default function TaskExecution() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-5 text-sm text-emerald-700 flex items-center gap-3">
             <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
             <div>
-              <p className="font-semibold">Entrada registrada</p>
-              <p>{execution ? `Entrada às ${formatDateTime(execution.checkin_time)}` : ''}</p>
+              <p className="font-semibold">{t('taskExecution.entryRegistered')}</p>
+              <p>{execution ? t('taskExecution.entryAt', { time: formatDateTime(execution.checkin_time) }) : ''}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 mb-1">
             <VideoIcon size={18} className="text-brand-600" />
-            <h2 className="font-bold text-gray-900">2. Vídeo de Saída</h2>
+            <h2 className="font-bold text-gray-900">{t('taskExecution.videoExit')}</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Agora limpe o apartamento e grave o vídeo mostrando <strong>como deixou o local</strong>.
+            {t('taskExecution.videoExitDesc')}
           </p>
 
           {checklistLoading ? (
@@ -230,9 +232,9 @@ export default function TaskExecution() {
               <div className="flex items-center gap-2 mb-3">
                 <ListChecks size={16} className="text-brand-600" />
                 <p className="text-sm font-semibold text-gray-800">
-                  Checklist de limpeza
+                  {t('taskExecution.checklistTitle')}
                   <span className="ml-2 text-xs font-normal text-gray-500">
-                    {checklist.filter((i) => i.is_checked).length}/{checklist.length} concluídos
+                    {t('taskExecution.completedOf', { done: checklist.filter((i) => i.is_checked).length, total: checklist.length })}
                   </span>
                 </p>
               </div>
@@ -272,7 +274,7 @@ export default function TaskExecution() {
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              placeholder="Observações (opcional)"
+              placeholder={t('taskExecution.observationsPlaceholder')}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl mt-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 focus:bg-white transition-all"
               rows={2}
             />
@@ -285,10 +287,10 @@ export default function TaskExecution() {
               <Button type="submit" variant="success" className="w-full !py-3" disabled={submitting || !videoBlob}>
                 {submitting ? (
                   <span className="flex items-center gap-2 justify-center">
-                    <Loader2 size={16} className="animate-spin" /> Enviando...
+                    <Loader2 size={16} className="animate-spin" /> {t('taskExecution.sending')}
                   </span>
                 ) : (
-                  'Confirmar Saída e Concluir'
+                  t('taskExecution.confirmExit')
                 )}
               </Button>
             </div>
@@ -301,11 +303,11 @@ export default function TaskExecution() {
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-xl shadow-emerald-500/30">
             <CheckCircle2 size={40} className="text-white" />
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Limpeza Concluída!</h2>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-2">{t('taskExecution.completedTitle')}</h2>
           <p className="text-gray-500 mb-7">
-            Obrigado! O administrador já pode acompanhar os vídeos desta limpeza.
+            {t('taskExecution.completedDesc')}
           </p>
-          <Button onClick={() => navigate('/')}>Voltar para a escala</Button>
+          <Button onClick={() => navigate('/')}>{t('taskExecution.backToScale')}</Button>
         </Card>
       )}
     </div>

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { getEmployees, getEmployeeReport, getGeneralReport, downloadReport } from '../../services'
+import { useI18n } from '../../contexts/I18nContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Select from '../../components/ui/Select'
@@ -9,6 +10,7 @@ import { getWeekStart, formatDate, taskStatusLabels, taskStatusColors, taskTypeL
 import { Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react'
 
 export default function Reports() {
+  const { t, formatDate: formatDateI18n } = useI18n()
   const [employees, setEmployees] = useState([])
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [startDate, setStartDate] = useState(format(getWeekStart(new Date()), 'yyyy-MM-dd'))
@@ -36,7 +38,7 @@ export default function Reports() {
       setReport(emp?.data || null)
     } catch (err) {
       console.error(err)
-      alert('Erro ao gerar relatório')
+      alert(t('reports.errorGenerate'))
     } finally {
       setLoading(false)
     }
@@ -45,16 +47,16 @@ export default function Reports() {
   const exportCSV = () => {
     if (!report) return
     const rows = [
-      ['Funcionário', report.employee_name],
-      ['Período', `${formatDate(report.period_start)} a ${formatDate(report.period_end)}`],
-      ['Dias trabalhados', report.total_days_worked],
-      ['Diárias inteiras', report.full_day_count],
-      ['Meias diárias', report.half_day_count],
-      ['Total de tarefas', report.total_tasks],
-      ['Concluídas', report.completed_tasks],
-      ['Taxa de conclusão', `${report.completion_rate}%`],
+      [t('reports.employee'), report.employee_name],
+      [t('common.date'), `${formatDate(report.period_start)} a ${formatDate(report.period_end)}`],
+      [t('reports.daysWorked'), report.total_days_worked],
+      [t('reports.fullDays'), report.full_day_count],
+      [t('reports.halfDays'), report.half_day_count],
+      [t('reports.total'), report.total_tasks],
+      [t('reports.completed'), report.completed_tasks],
+      [t('reports.completionRate'), `${report.completion_rate}%`],
       [],
-      ['Data', 'Apartamento', 'Tipo', 'Status'],
+      [t('reports.colDate'), t('reports.colApartment'), t('reports.colType'), t('reports.colStatus')],
       ...report.tasks.map((t) => [
         t.scheduled_date,
         t.apartment_name,
@@ -79,7 +81,7 @@ export default function Reports() {
     try {
       await downloadReport(type, { employeeId, startDate, endDate })
     } catch (err) {
-      alert('Erro ao exportar relatório')
+      alert(t('reports.errorExport'))
     } finally {
       setExporting('')
     }
@@ -89,18 +91,18 @@ export default function Reports() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-          <span className="text-gradient">Relatórios</span>
+          <span className="text-gradient">{t('reports.title')}</span>
         </h1>
-        <p className="text-sm text-gray-500 mt-1">Diárias trabalhadas e cálculo de pagamento</p>
+        <p className="text-sm text-gray-500 mt-1">{t('reports.subtitle')}</p>
       </div>
 
       {/* Filtros */}
       <Card className="p-4 mb-6">
         <form onSubmit={runReport} className="grid md:grid-cols-4 gap-4">
           <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Funcionário</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.employee')}</label>
             <Select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}>
-              <option value="">Todos</option>
+              <option value="">{t('reports.all')}</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.full_name}
@@ -109,7 +111,7 @@ export default function Reports() {
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data inicial</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.startDate')}</label>
             <input
               type="date"
               value={startDate}
@@ -119,7 +121,7 @@ export default function Reports() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data final</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.endDate')}</label>
             <input
               type="date"
               value={endDate}
@@ -130,7 +132,7 @@ export default function Reports() {
           </div>
           <div className="flex items-end">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Gerando...' : 'Gerar Relatório'}
+              {loading ? t('reports.generating') : t('reports.generate')}
             </Button>
           </div>
         </form>
@@ -141,7 +143,7 @@ export default function Reports() {
         <Card className="p-6 mb-6">
           <div className="flex justify-between items-start mb-4 flex-wrap gap-3">
             <h2 className="font-semibold text-gray-900">
-              Relatório Geral ({formatDate(general.period_start)} a {formatDate(general.period_end)})
+              {t('reports.generalTitle', { start: formatDateI18n(general.period_start), end: formatDateI18n(general.period_end) })}
             </h2>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleExport('pdf')} disabled={!!exporting}>
@@ -160,19 +162,19 @@ export default function Reports() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div>
-              <p className="text-sm text-gray-500">Funcionários</p>
+              <p className="text-sm text-gray-500">{t('reports.employees')}</p>
               <p className="text-2xl font-bold text-gray-900">{general.total_employees}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tarefas</p>
+              <p className="text-sm text-gray-500">{t('reports.tasks')}</p>
               <p className="text-2xl font-bold text-gray-900">{general.total_tasks}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Concluídas</p>
+              <p className="text-sm text-gray-500">{t('reports.completed')}</p>
               <p className="text-2xl font-bold text-green-600">{general.completed_tasks}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Taxa de conclusão</p>
+              <p className="text-sm text-gray-500">{t('reports.completionRate')}</p>
               <p className="text-2xl font-bold text-brand-600">{general.completion_rate}%</p>
             </div>
           </div>
@@ -180,12 +182,12 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left text-gray-500">
-                  <th className="px-4 py-2 font-medium">Funcionário</th>
-                  <th className="px-4 py-2 font-medium">Diárias Inteiras</th>
-                  <th className="px-4 py-2 font-medium">Meias Diárias</th>
-                  <th className="px-4 py-2 font-medium">Total</th>
-                  <th className="px-4 py-2 font-medium">Concluídas</th>
-                  <th className="px-4 py-2 font-medium">Conclusão</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.employee')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.fullDays')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.halfDays')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.total')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.completed')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.conclusion')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,9 +218,9 @@ export default function Reports() {
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h2 className="font-semibold text-gray-900">Relatório de {report.employee_name}</h2>
+              <h2 className="font-semibold text-gray-900">{t('reports.reportOf', { name: report.employee_name })}</h2>
               <p className="text-sm text-gray-500">
-                {formatDate(report.period_start)} a {formatDate(report.period_end)}
+                {formatDateI18n(report.period_start)} {t('common.to')} {formatDateI18n(report.period_end)}
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -244,23 +246,23 @@ export default function Reports() {
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-brand-50 rounded-lg p-3">
-              <p className="text-xs text-brand-600">Dias trabalhados</p>
+              <p className="text-xs text-brand-600">{t('reports.daysWorked')}</p>
               <p className="text-2xl font-bold text-brand-700">{report.total_days_worked}</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-3">
-              <p className="text-xs text-purple-600">Diárias inteiras</p>
+              <p className="text-xs text-purple-600">{t('reports.fullDays')}</p>
               <p className="text-2xl font-bold text-purple-700">{report.full_day_count}</p>
             </div>
             <div className="bg-cyan-50 rounded-lg p-3">
-              <p className="text-xs text-cyan-600">Meias diárias</p>
+              <p className="text-xs text-cyan-600">{t('reports.halfDays')}</p>
               <p className="text-2xl font-bold text-cyan-700">{report.half_day_count}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-xs text-green-600">Concluídas</p>
+              <p className="text-xs text-green-600">{t('reports.completed')}</p>
               <p className="text-2xl font-bold text-green-700">{report.completed_tasks}</p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-3">
-              <p className="text-xs text-yellow-600">Conclusão</p>
+              <p className="text-xs text-yellow-600">{t('reports.conclusion')}</p>
               <p className="text-2xl font-bold text-yellow-700">{report.completion_rate}%</p>
             </div>
           </div>
@@ -269,17 +271,17 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left text-gray-500">
-                  <th className="px-4 py-2 font-medium">Data</th>
-                  <th className="px-4 py-2 font-medium">Apartamento</th>
-                  <th className="px-4 py-2 font-medium">Tipo</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.colDate')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.colApartment')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.colType')}</th>
+                  <th className="px-4 py-2 font-medium">{t('reports.colStatus')}</th>
                 </tr>
               </thead>
               <tbody>
                 {report.tasks.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
-                      Sem tarefas no período.
+                      {t('reports.noTasksPeriod')}
                     </td>
                   </tr>
                 )}

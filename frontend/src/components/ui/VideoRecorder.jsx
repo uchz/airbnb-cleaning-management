@@ -1,8 +1,10 @@
 ﻿import { useState, useRef, useEffect } from 'react'
+import { useI18n } from '../../contexts/I18nContext'
 import Button from './Button'
 import { Camera, Video, Square, RotateCcw, Check, Upload } from 'lucide-react'
 
 export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
+  const { t } = useI18n()
   const [stream, setStream] = useState(null)
   const [recording, setRecording] = useState(false)
   const [recorded, setRecorded] = useState(null) // { blob, url, source }
@@ -29,7 +31,7 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
       }
       setStream(s)
     } catch (err) {
-      setError('Não foi possível acessar a câmera. Permita o acesso pelo navegador ou use a opção de adicionar vídeo.')
+      setError(t('videoRecorder.cameraError'))
     }
   }
 
@@ -59,7 +61,7 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
 
     // Valida que é um vídeo
     if (!file.type.startsWith('video/')) {
-      setError('O arquivo selecionado não é um vídeo.')
+      setError(t('videoRecorder.notVideo'))
       return
     }
 
@@ -146,13 +148,13 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
         {!stream && !recorded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-900">
             <Camera size={32} className="mb-2" />
-            <p className="text-sm">Câmera desativada</p>
+            <p className="text-sm">{t('videoRecorder.cameraOff')}</p>
           </div>
         )}
         {recording && (
           <div className="absolute top-3 left-3 flex items-center gap-2 bg-red-600 text-white text-xs px-2 py-1 rounded-lg">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-            GRAVANDO {formatTime(elapsed)}
+            {t('videoRecorder.recording', { time: formatTime(elapsed) })}
           </div>
         )}
       </div>
@@ -178,12 +180,12 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
           <>
             <Button type="button" onClick={startCamera}>
               <span className="flex items-center gap-2">
-                <Camera size={16} /> Ativar Câmera
+                <Camera size={16} /> {t('videoRecorder.enableCamera')}
               </span>
             </Button>
             <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
               <span className="flex items-center gap-2">
-                <Upload size={16} /> Adicionar Vídeo
+                <Upload size={16} /> {t('videoRecorder.addVideo')}
               </span>
             </Button>
           </>
@@ -192,7 +194,7 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
         {stream && !recording && !recorded && (
           <Button type="button" variant="danger" onClick={startRecording}>
             <span className="flex items-center gap-2">
-              <Video size={16} /> Gravar Vídeo
+              <Video size={16} /> {t('videoRecorder.recordVideo')}
             </span>
           </Button>
         )}
@@ -200,7 +202,7 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
         {recording && (
           <Button type="button" variant="danger" onClick={stopRecording}>
             <span className="flex items-center gap-2">
-              <Square size={16} /> Parar Gravação
+              <Square size={16} /> {t('videoRecorder.stopRecording')}
             </span>
           </Button>
         )}
@@ -209,12 +211,12 @@ export default function VideoRecorder({ onVideoReady, maxSeconds = 120 }) {
           <>
             <Button type="button" variant="outline" onClick={reset}>
               <span className="flex items-center gap-2">
-                <RotateCcw size={16} /> {recorded.source === 'gallery' ? 'Trocar Vídeo' : 'Gravar Novamente'}
+                <RotateCcw size={16} /> {recorded.source === 'gallery' ? t('videoRecorder.changeVideo') : t('videoRecorder.retake')}
               </span>
             </Button>
             <Button type="submit" variant="success">
               <span className="flex items-center gap-2">
-                <Check size={16} /> Confirmar Vídeo
+                <Check size={16} /> {t('videoRecorder.confirmVideo')}
               </span>
             </Button>
           </>
