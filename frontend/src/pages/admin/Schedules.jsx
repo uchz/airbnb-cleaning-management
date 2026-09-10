@@ -22,10 +22,17 @@ import { format, addDays } from 'date-fns'
 import { taskStatusLabels, taskStatusColors, taskTypeLabels, taskTypeColors } from '../../utils'
 import { CalendarPlus, Plus, RefreshCw, Trash2, Clock, Zap, CopyPlus } from 'lucide-react'
 
-const WEEK_DAY_LABELS = { 6: 'Sáb', 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex' }
-
 export default function Schedules() {
   const { t, formatDate } = useI18n()
+  const WEEK_DAY_LABELS = {
+    6: t('schedules.weekDayLabels.sat'),
+    0: t('schedules.weekDayLabels.sun'),
+    1: t('schedules.weekDayLabels.mon'),
+    2: t('schedules.weekDayLabels.tue'),
+    3: t('schedules.weekDayLabels.wed'),
+    4: t('schedules.weekDayLabels.thu'),
+    5: t('schedules.weekDayLabels.fri'),
+  }
   const [schedules, setSchedules] = useState([])
   const [selected, setSelected] = useState(null)
   const [employees, setEmployees] = useState([])
@@ -268,9 +275,12 @@ export default function Schedules() {
               )}
               {schedules.map((s) => (
                 <li key={s.id}>
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => selectSchedule(s.id)}
-                    className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex justify-between items-center ${
+                    onKeyDown={(e) => e.key === 'Enter' && selectSchedule(s.id)}
+                    className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex justify-between items-center cursor-pointer ${
                       selected?.id === s.id ? 'bg-brand-50 text-brand-700' : ''
                     }`}
                   >
@@ -283,10 +293,11 @@ export default function Schedules() {
                         handleDeleteSchedule(s.id)
                       }}
                       className="text-gray-400 hover:text-red-500 p-1"
+                      aria-label={t('common.delete')}
                     >
                       <Trash2 size={14} />
                     </button>
-                  </button>
+                  </div>
                 </li>
               ))}
             </ul>
