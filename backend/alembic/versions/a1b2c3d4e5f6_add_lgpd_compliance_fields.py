@@ -25,9 +25,8 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('deleted_at', sa.DateTime(), nullable=True))
     op.add_column('users', sa.Column('deletion_scheduled_for', sa.DateTime(), nullable=True))
     
-    # Add trial period to organizations
+    # Add trial period to organizations (created_at já existe, não adicionar)
     op.add_column('organizations', sa.Column('trial_ends_at', sa.DateTime(), nullable=True))
-    op.add_column('organizations', sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.text('CURRENT_TIMESTAMP')))
     
     # Create access_logs table for LGPD audit
     op.create_table(
@@ -56,8 +55,7 @@ def downgrade() -> None:
     op.drop_index('ix_access_logs_user_id', 'access_logs')
     op.drop_table('access_logs')
     
-    # Remove trial fields from organizations
-    op.drop_column('organizations', 'created_at')
+    # Remove trial fields from organizations (não drop created_at, já existia)
     op.drop_column('organizations', 'trial_ends_at')
     
     # Remove LGPD fields from users
